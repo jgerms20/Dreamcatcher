@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night-950: #07060f;
+  --color-night-900: #0b0a1a;
+  --color-night-800: #131126;
+  --color-night-700: #1c1936;
+  --color-night-600: #282349;
+  --color-night-500: #37315f;
+  --color-dusk-400: #8b7fd4;
+  --color-dusk-300: #a99ee6;
+  --color-dusk-200: #cbc3f2;
+  --color-dusk-100: #e6e2fa;
+  --color-aurora-400: #4fd1c5;
+  --color-aurora-300: #7ee8de;
+  --color-ember-400: #f2a65a;
+  --color-ember-300: #f7c48b;
+  --color-rose-dream: #e07a9b;
+  /* Chart series colors — validated (CVD/contrast/lightness) against surface #131126 */
+  --color-viz-1: #8b7fd4;
+  --color-viz-2: #128f83;
+  --color-viz-3: #c98500;
+  --color-viz-4: #c2497f;
+  --font-display: "Georgia", "Times New Roman", serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-night-900 text-dusk-100 font-[family-name:var(--font-body)] antialiased;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(139, 127, 212, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(79, 209, 197, 0.06), transparent);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.card {
+  @apply bg-night-800/80 border border-night-600/60 rounded-2xl backdrop-blur-sm;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply btn bg-dusk-400 text-night-950 hover:bg-dusk-300;
+}
+
+.btn-secondary {
+  @apply btn bg-night-700 text-dusk-200 border border-night-500 hover:bg-night-600;
+}
+
+.btn-ghost {
+  @apply btn text-dusk-300 hover:bg-night-700;
+}
+
+.input {
+  @apply w-full rounded-xl bg-night-700/70 border border-night-500/70 px-3 py-2 text-dusk-100 placeholder-dusk-400/50 focus:outline-none focus:border-dusk-400;
+}
+
+.label {
+  @apply block text-xs uppercase tracking-wider text-dusk-300/80 mb-1;
+}
+
+.chip {
+  @apply inline-flex items-center rounded-full bg-night-600/70 border border-night-500/60 px-2.5 py-0.5 text-xs text-dusk-200;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-night-500);
+  border-radius: 8px;
+}
+
+@keyframes pulse-record {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 122, 155, 0.5); }
+  50% { box-shadow: 0 0 0 12px rgba(224, 122, 155, 0); }
+}
+.recording-pulse {
+  animation: pulse-record 1.6s ease-in-out infinite;
+}
