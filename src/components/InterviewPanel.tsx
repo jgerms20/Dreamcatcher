@@ -4,6 +4,7 @@ import { nextStaticQuestion } from '../data/questionBank'
 import { nextQuestion, analyzeDream, hasClaudeKey } from '../services/claude'
 import { RUBRIC_DIMENSIONS } from '../data/rubric'
 import type { Dream } from '../types'
+import Icon from './Icon'
 
 // Adaptive recall interview: AI-driven when a Claude key exists, question-bank otherwise.
 export default function InterviewPanel({ dream }: { dream: Dream }) {
@@ -63,24 +64,28 @@ export default function InterviewPanel({ dream }: { dream: Dream }) {
       {dream.interview.length > 0 && (
         <div className="space-y-3">
           {dream.interview.map((t, i) => (
-            <div key={i} className="rounded-xl bg-night-700/50 p-3">
-              <p className="text-sm text-dusk-300">
-                {t.askedByAI ? '✨' : '📋'} {t.question}
-                {t.dimension && <span className="ml-2 text-xs text-dusk-400">({dimName(t.dimension)})</span>}
+            <div key={i} className="inset-panel p-3">
+              <p className="flex items-start gap-2 text-sm text-ivory-300">
+                <Icon name={t.askedByAI ? 'sparkle' : 'file'} size={15} className="mt-0.5 text-aurora-300" />
+                <span>
+                  {t.question}
+                  {t.dimension && <span className="ml-2 text-xs text-ivory-400">({dimName(t.dimension)})</span>}
+                </span>
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-dusk-100">{t.answer}</p>
+              <p className="font-prose mt-1.5 text-sm leading-relaxed text-ivory-100">{t.answer}</p>
             </div>
           ))}
         </div>
       )}
 
       {current ? (
-        <div className="rounded-xl border border-dusk-400/40 bg-night-700/60 p-4">
-          <p className="text-sm text-dusk-100">
-            {ai ? '✨' : '📋'} {current.question}
+        <div className="rounded-lg border border-aurora-300/35 bg-ink-800 p-4">
+          <p className="flex items-start gap-2 text-sm text-ivory-100">
+            <Icon name={ai ? 'sparkle' : 'file'} size={15} className="mt-0.5 text-aurora-300" />
+            <span>{current.question}</span>
           </p>
           {current.dimension && (
-            <p className="mt-1 text-xs text-dusk-400">deepening: {dimName(current.dimension)}</p>
+            <p className="mt-1 text-xs text-ivory-400">deepening: {dimName(current.dimension)}</p>
           )}
           <textarea
             value={answer}
@@ -99,15 +104,16 @@ export default function InterviewPanel({ dream }: { dream: Dream }) {
         </div>
       ) : (
         <button onClick={() => void ask()} disabled={busy} className="btn-secondary w-full">
-          {busy ? 'Thinking…' : dream.interview.length ? 'Ask me another question' : `Start the recall interview ${ai ? '✨' : ''}`}
+          {!busy && <Icon name={ai ? 'sparkle' : 'file'} size={16} />}
+          {busy ? 'Thinking…' : dream.interview.length ? 'Ask me another question' : 'Start the recall interview'}
         </button>
       )}
       {!ai && (
-        <p className="text-xs text-dusk-400">
+        <p className="text-xs text-ivory-400">
           Using the built-in question bank. Add an Anthropic key in Settings for adaptive questions that follow your dream's specific images.
         </p>
       )}
-      {error && <p className="text-sm text-ember-300">{error}</p>}
+      {error && <p className="text-sm text-amber-300">{error}</p>}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { findSymbols, SYMBOL_CATEGORIES, type DreamSymbol } from '../data/symbols'
+import Icon from '../components/Icon'
 
 export default function Symbols() {
   const [params, setParams] = useSearchParams()
@@ -15,10 +16,10 @@ export default function Symbols() {
   }, [query, category])
 
   return (
-    <div className="space-y-5">
+    <div className="reveal-stack space-y-5">
       <header>
-        <h2 className="font-display text-3xl text-dusk-100">Symbol Encyclopedia</h2>
-        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-dusk-300">
+        <h2 className="page-title">Symbol Encyclopedia</h2>
+        <p className="page-subtitle">
           The mainstays of dreaming — waves, teeth, flight, the chase — and what different traditions have made of them.
           No dream required: browse freely. Each entry offers the Jungian, Freudian, and cultural/folk readings and a question to take back to your own life.
         </p>
@@ -37,11 +38,11 @@ export default function Symbols() {
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        <span className="text-xs text-dusk-400">{results.length} symbols</span>
+        <span className="text-xs text-ivory-400">{results.length} symbols</span>
       </div>
 
       {results.length === 0 ? (
-        <p className="py-10 text-center text-sm text-dusk-300">
+        <p className="py-10 text-center text-sm text-ivory-300">
           No entry for that yet — but absence of a dictionary meaning doesn't mean absence of meaning. What does it evoke for you?
         </p>
       ) : (
@@ -60,20 +61,25 @@ function SymbolCard({ symbol, open, onToggle }: { symbol: DreamSymbol; open: boo
     <article className="card p-5">
       <button onClick={onToggle} className="w-full text-left">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-display text-lg text-dusk-100">🔮 {symbol.name}</h3>
-            <p className="text-xs text-dusk-400">{symbol.category}</p>
+          <div className="flex items-start gap-3">
+            <span className="icon-mark mt-0.5 h-8 w-8">
+              <Icon name="sparkle" size={16} />
+            </span>
+            <div>
+              <h3 className="font-display text-lg font-semibold text-ivory-100">{symbol.name}</h3>
+              <p className="text-xs text-ivory-400">{symbol.category}</p>
+            </div>
           </div>
-          <span className="text-dusk-300">{open ? '−' : '+'}</span>
+          <span className="text-ivory-300">{open ? '−' : '+'}</span>
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-dusk-200">{symbol.summary}</p>
+        <p className="mt-3 text-sm leading-relaxed text-ivory-200">{symbol.summary}</p>
       </button>
       {open && (
-        <div className="mt-4 space-y-3 border-t border-night-600/60 pt-4 text-sm">
+        <div className="mt-4 space-y-3 border-t border-ivory-100/10 pt-4 text-sm">
           <Tradition label="Jungian" text={symbol.jungian} />
           <Tradition label="Freudian" text={symbol.freudian} />
           <Tradition label="Cultural & folk" text={symbol.cultural} />
-          <p className="rounded-xl bg-night-700/50 p-3 italic leading-relaxed text-dusk-200">💭 {symbol.reflect}</p>
+          <p className="inset-panel border-l-2 border-l-amber-300 p-3 italic leading-relaxed text-ivory-200">{symbol.reflect}</p>
         </div>
       )}
     </article>
@@ -82,8 +88,8 @@ function SymbolCard({ symbol, open, onToggle }: { symbol: DreamSymbol; open: boo
 
 function Tradition({ label, text }: { label: string; text: string }) {
   return (
-    <p className="leading-relaxed text-dusk-200">
-      <span className="mr-1 font-semibold text-dusk-300">{label}:</span>
+    <p className="leading-relaxed text-ivory-200">
+      <span className="mr-1 font-semibold text-ivory-300">{label}:</span>
       {text}
     </p>
   )
