@@ -30,14 +30,14 @@ export default function RubricRadar({ rubric }: { rubric: RubricResult }) {
           key={ring}
           points={RUBRIC_DIMENSIONS.map((_, i) => point(i, ring).join(',')).join(' ')}
           fill="none"
-          stroke="var(--color-night-600)"
+          stroke="color-mix(in oklab, var(--color-ivory-100) 14%, transparent)"
           strokeWidth={ring === 5 ? 1.5 : 1}
         />
       ))}
       {/* spokes */}
       {RUBRIC_DIMENSIONS.map((_, i) => {
         const [x, y] = point(i, 5)
-        return <line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="var(--color-night-600)" strokeWidth={1} />
+        return <line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke="color-mix(in oklab, var(--color-ivory-100) 12%, transparent)" strokeWidth={1} />
       })}
       {/* data */}
       <polygon points={polygon} fill="color-mix(in oklab, var(--color-viz-1) 25%, transparent)" stroke="var(--color-viz-1)" strokeWidth={2} strokeLinejoin="round" />
@@ -45,7 +45,7 @@ export default function RubricRadar({ rubric }: { rubric: RubricResult }) {
         const [x, y] = point(i, v)
         const dim = RUBRIC_DIMENSIONS[i]
         return (
-          <circle key={dim.id} cx={x} cy={y} r={4} fill="var(--color-viz-1)" stroke="var(--color-night-800)" strokeWidth={2}>
+          <circle key={dim.id} cx={x} cy={y} r={4} fill="var(--color-viz-1)" stroke="var(--color-ink-850)" strokeWidth={2}>
             <title>{`${dim.name}: ${v}/5 — ${rubric.scores[dim.id]?.note ?? ''}`}</title>
           </circle>
         )
@@ -58,8 +58,8 @@ export default function RubricRadar({ rubric }: { rubric: RubricResult }) {
         const anchor = Math.abs(Math.cos(angle)) < 0.3 ? 'middle' : Math.cos(angle) > 0 ? 'start' : 'end'
         const short = dim.name.split(' ')[0].replace('&', '')
         return (
-          <text key={dim.id} x={x} y={y + 4} textAnchor={anchor} fontSize={11} fill="var(--color-dusk-300)">
-            {short} <tspan fill="var(--color-dusk-200)" fontWeight={600}>{values[i]}</tspan>
+          <text key={dim.id} x={x} y={y + 4} textAnchor={anchor} fontSize={11} fill="var(--color-ivory-300)">
+            {short} <tspan fill="var(--color-ivory-100)" fontWeight={600}>{values[i]}</tspan>
           </text>
         )
       })}

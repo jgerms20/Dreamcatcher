@@ -5,6 +5,7 @@ import { newId, type Dream } from '../types'
 import { generateVideoPrompt, hasClaudeKey } from '../services/claude'
 import { generateVideo, fetchVideoBlob, hasFalKey } from '../services/fal'
 import { useSettings, VIDEO_MODELS } from '../store/settings'
+import Icon from './Icon'
 
 // Turn the dream into a short generated video: Claude writes the cinematic prompt,
 // fal.ai renders it, and the MP4 is saved into the dream entry.
@@ -73,13 +74,14 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <button onClick={() => void writePrompt()} disabled={!claude || Boolean(status)} className="btn-secondary">
-          {vp ? '↻ Rewrite cinematic prompt ✨' : '1 · Write cinematic prompt ✨'}
+          <Icon name={vp ? 'refresh' : 'sparkle'} size={16} />
+          {vp ? 'Rewrite cinematic prompt' : 'Write cinematic prompt'}
         </button>
-        {!claude && <span className="text-xs text-dusk-400">needs an Anthropic key (Settings)</span>}
+        {!claude && <span className="text-xs text-ivory-400">needs an Anthropic key (Settings)</span>}
       </div>
 
       <div>
-        <label className="label" htmlFor="video-prompt">Video prompt {vp && <span className="normal-case text-dusk-400">— {vp.styleNotes}</span>}</label>
+        <label className="label" htmlFor="video-prompt">Video prompt {vp && <span className="normal-case text-ivory-400">— {vp.styleNotes}</span>}</label>
         <textarea
           id="video-prompt"
           value={prompt}
@@ -108,35 +110,38 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
           {settings.customVideoModel && <option value="custom">{settings.customVideoModel} (custom)</option>}
         </select>
         <button onClick={() => void render()} disabled={!fal || !prompt.trim() || Boolean(status)} className="btn-primary">
-          2 · Generate dream video 🎬
+          <Icon name="film" size={16} /> Generate dream video
         </button>
-        {!fal && <span className="text-xs text-dusk-400">needs a fal.ai key (Settings)</span>}
+        {!fal && <span className="text-xs text-ivory-400">needs a fal.ai key (Settings)</span>}
       </div>
 
       {status && (
-        <p className="flex items-center gap-2 rounded-xl bg-night-700/60 p-3 text-sm text-aurora-300">
+        <p className="inset-panel flex items-center gap-2 p-3 text-sm text-aurora-300">
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-aurora-400" /> {status}
         </p>
       )}
-      {error && <p className="text-sm text-ember-300">{error}</p>}
+      {error && <p className="text-sm text-amber-300">{error}</p>}
 
-      <details className="rounded-xl bg-night-700/40 p-3 text-sm">
-        <summary className="cursor-pointer text-dusk-300">Prefer another tool? Copy a tuned prompt or upload a video</summary>
+      <details className="inset-panel p-3 text-sm">
+        <summary className="cursor-pointer text-ivory-300">Prefer another tool? Copy a tuned prompt or upload a video</summary>
         <div className="mt-3 space-y-2">
           {vp ? (
             <>
               <button onClick={() => void copy('runway', vp.runwayPrompt)} className="btn-ghost w-full justify-start text-left">
-                {copied === 'runway' ? '✓ Copied' : '📋 Copy Runway-tuned prompt'}
+                <Icon name={copied === 'runway' ? 'check' : 'copy'} size={16} />
+                {copied === 'runway' ? 'Copied' : 'Copy Runway-tuned prompt'}
               </button>
               <button onClick={() => void copy('pika', vp.pikaPrompt)} className="btn-ghost w-full justify-start text-left">
-                {copied === 'pika' ? '✓ Copied' : '📋 Copy Pika-tuned prompt'}
+                <Icon name={copied === 'pika' ? 'check' : 'copy'} size={16} />
+                {copied === 'pika' ? 'Copied' : 'Copy Pika-tuned prompt'}
               </button>
               <button onClick={() => void copy('generic', vp.falPrompt)} className="btn-ghost w-full justify-start text-left">
-                {copied === 'generic' ? '✓ Copied' : '📋 Copy generic prompt (ComfyUI / anything)'}
+                <Icon name={copied === 'generic' ? 'check' : 'copy'} size={16} />
+                {copied === 'generic' ? 'Copied' : 'Copy generic prompt (ComfyUI / anything)'}
               </button>
             </>
           ) : (
-            <p className="text-xs text-dusk-400">Generate a cinematic prompt first to get Runway / Pika / ComfyUI variants.</p>
+            <p className="text-xs text-ivory-400">Generate a cinematic prompt first to get Runway / Pika / ComfyUI variants.</p>
           )}
           <input
             ref={fileRef}
@@ -149,7 +154,7 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
             }}
           />
           <button onClick={() => fileRef.current?.click()} className="btn-ghost w-full justify-start text-left">
-            ⬆️ Upload a video you generated elsewhere
+            <Icon name="upload" size={16} /> Upload a video you generated elsewhere
           </button>
         </div>
       </details>

@@ -5,6 +5,7 @@ import { useSleep } from '../store/sleep'
 import { dreamsDB, sleepDB, wipeAll } from '../db'
 import { testClaudeKey } from '../services/claude'
 import type { Dream, SleepLog } from '../types'
+import Icon from '../components/Icon'
 
 export default function Settings() {
   const s = useSettings()
@@ -18,9 +19,9 @@ export default function Settings() {
     setClaudeStatus('Testing…')
     try {
       await testClaudeKey(s.anthropicKey)
-      setClaudeStatus('✓ Key works')
+      setClaudeStatus('Key works')
     } catch (e) {
-      setClaudeStatus(`✗ ${e instanceof Error ? e.message : 'Key test failed'}`)
+      setClaudeStatus(`Error: ${e instanceof Error ? e.message : 'Key test failed'}`)
     }
   }
 
@@ -62,18 +63,18 @@ export default function Settings() {
       for (const l of parsed.sleep ?? []) {
         if (!existingSleep.has(l.id)) await sleepDB.put(l)
       }
-      setImportStatus(`✓ Imported ${added} new dream${added === 1 ? '' : 's'}. Reloading…`)
+      setImportStatus(`Imported ${added} new dream${added === 1 ? '' : 's'}. Reloading…`)
       setTimeout(() => window.location.reload(), 900)
     } catch (e) {
-      setImportStatus(`✗ ${e instanceof Error ? e.message : 'Import failed'}`)
+      setImportStatus(`Error: ${e instanceof Error ? e.message : 'Import failed'}`)
     }
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="reveal-stack mx-auto max-w-2xl space-y-6">
       <header>
-        <h2 className="font-display text-3xl text-dusk-100">Settings</h2>
-        <p className="mt-1 text-sm text-dusk-300">
+        <h2 className="page-title">Settings</h2>
+        <p className="page-subtitle">
           Everything lives in <em>your</em> browser — dreams in local storage on this device, API keys never sent anywhere
           except directly to Anthropic and fal.ai.
         </p>
@@ -81,10 +82,12 @@ export default function Settings() {
 
       <section className="card space-y-4 p-5">
         <div>
-          <h3 className="font-display text-lg text-dusk-100">🧠 Anthropic (Claude) — interpretation & interview</h3>
-          <p className="mt-1 text-xs leading-relaxed text-dusk-400">
+          <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-ivory-100">
+            <Icon name="brain" size={18} className="text-aurora-300" /> Anthropic (Claude) — interpretation & interview
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-ivory-400">
             Powers recall scoring, adaptive questions, interpretation, comparisons, and video prompts.
-            Get a key at <a href="https://platform.claude.com/" target="_blank" rel="noreferrer" className="text-aurora-300 underline">platform.claude.com</a> → API keys.
+            Get a key at <a href="https://platform.claude.com/" target="_blank" rel="noreferrer" className="text-aurora-300 underline">platform.claude.com</a> under API keys.
           </p>
         </div>
         <div className="flex gap-2">
@@ -98,7 +101,11 @@ export default function Settings() {
           />
           <button onClick={() => void testClaude()} disabled={!s.anthropicKey} className="btn-secondary shrink-0">Test</button>
         </div>
-        {claudeStatus && <p className={`text-sm ${claudeStatus.startsWith('✓') ? 'text-aurora-300' : 'text-ember-300'}`}>{claudeStatus}</p>}
+        {claudeStatus && (
+          <p className={`flex items-center gap-2 text-sm ${claudeStatus.startsWith('Error:') ? 'text-amber-300' : 'text-aurora-300'}`}>
+            <Icon name={claudeStatus.startsWith('Error:') ? 'x' : 'check'} size={15} /> {claudeStatus}
+          </p>
+        )}
         <div>
           <label className="label" htmlFor="model">Model</label>
           <select id="model" value={s.claudeModel} onChange={(e) => s.setClaudeModel(e.target.value)} className="input">
@@ -111,8 +118,10 @@ export default function Settings() {
 
       <section className="card space-y-4 p-5">
         <div>
-          <h3 className="font-display text-lg text-dusk-100">🎬 fal.ai — video generation & transcription</h3>
-          <p className="mt-1 text-xs leading-relaxed text-dusk-400">
+          <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-ivory-100">
+            <Icon name="video" size={18} className="text-aurora-300" /> fal.ai — video generation & transcription
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-ivory-400">
             One key unlocks many video models plus Whisper transcription for imported audio.
             Get a key at <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer" className="text-aurora-300 underline">fal.ai/dashboard/keys</a>.
           </p>
@@ -142,16 +151,20 @@ export default function Settings() {
             placeholder="e.g. fal-ai/kling-video/v2.5-turbo/pro/text-to-video"
             className="input"
           />
-          <p className="mt-1 text-xs text-dusk-400">
+          <p className="mt-1 text-xs text-ivory-400">
             fal adds models constantly — paste any text-to-video endpoint id from <a href="https://fal.ai/models" target="_blank" rel="noreferrer" className="text-aurora-300 underline">fal.ai/models</a>.
           </p>
         </div>
       </section>
 
       <section className="card space-y-3 p-5">
-        <h3 className="font-display text-lg text-dusk-100">💾 Your data</h3>
+        <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-ivory-100">
+          <Icon name="database" size={18} className="text-aurora-300" /> Your data
+        </h3>
         <div className="flex flex-wrap gap-2">
-          <button onClick={exportData} className="btn-secondary">Export journal (JSON)</button>
+          <button onClick={exportData} className="btn-secondary">
+            <Icon name="file" size={16} /> Export journal (JSON)
+          </button>
           <input
             ref={fileRef}
             type="file"
@@ -162,22 +175,28 @@ export default function Settings() {
               if (f) void importData(f)
             }}
           />
-          <button onClick={() => fileRef.current?.click()} className="btn-secondary">Import journal</button>
+          <button onClick={() => fileRef.current?.click()} className="btn-secondary">
+            <Icon name="upload" size={16} /> Import journal
+          </button>
         </div>
-        {importStatus && <p className={`text-sm ${importStatus.startsWith('✓') ? 'text-aurora-300' : 'text-ember-300'}`}>{importStatus}</p>}
-        <p className="text-xs text-dusk-400">
+        {importStatus && (
+          <p className={`flex items-center gap-2 text-sm ${importStatus.startsWith('Error:') ? 'text-amber-300' : 'text-aurora-300'}`}>
+            <Icon name={importStatus.startsWith('Error:') ? 'x' : 'check'} size={15} /> {importStatus}
+          </p>
+        )}
+        <p className="text-xs text-ivory-400">
           Exports contain dream text, analysis, and sleep logs. Audio/video stay on this device (they'd make the file huge).
         </p>
-        <div className="border-t border-night-600/60 pt-3">
+        <div className="border-t border-ivory-100/10 pt-3">
           <button
             onClick={() => {
               if (confirm('Delete ALL dreams, sleep logs, and media from this device? This cannot be undone.')) {
                 void wipeAll().then(() => window.location.reload())
               }
             }}
-            className="btn text-ember-300 hover:bg-night-700"
+            className="btn-ghost text-amber-300"
           >
-            🗑️ Delete everything
+            <Icon name="trash" size={16} /> Delete everything
           </button>
         </div>
       </section>

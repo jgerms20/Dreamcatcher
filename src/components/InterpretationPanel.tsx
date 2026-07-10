@@ -5,6 +5,7 @@ import { LENSES, type Dream, type LensId } from '../types'
 import Markdown from './Markdown'
 import { matchSymbolsInText } from '../data/symbols'
 import { Link } from 'react-router-dom'
+import Icon from './Icon'
 
 export default function InterpretationPanel({ dream }: { dream: Dream }) {
   const update = useDreams((s) => s.update)
@@ -47,41 +48,47 @@ export default function InterpretationPanel({ dream }: { dream: Dream }) {
             title={l.blurb}
           >
             {l.name}
-            {dream.interpretation[l.id] ? ' ✓' : ''}
+            {dream.interpretation[l.id] ? <Icon name="check" size={14} /> : null}
           </button>
         ))}
       </div>
-      <p className="text-xs text-dusk-400">{LENSES.find((l) => l.id === active)?.blurb}</p>
+      <p className="text-xs text-ivory-400">{LENSES.find((l) => l.id === active)?.blurb}</p>
 
       {text ? (
-        <div className="rounded-xl bg-night-700/40 p-4 text-sm">
+        <div className="inset-panel p-4 text-sm">
           <Markdown text={text} />
-          {busyLens === active && <span className="animate-pulse text-dusk-300">▋</span>}
+          {busyLens === active && <span className="animate-pulse text-ivory-300">▋</span>}
           {busyLens !== active && (
             <button onClick={() => void run(active)} className="btn-ghost mt-2 text-xs" disabled={busyLens != null}>
-              ↻ Reinterpret
+              <Icon name="refresh" size={14} /> Reinterpret
             </button>
           )}
         </div>
       ) : ai ? (
         <button onClick={() => void run(active)} disabled={busyLens != null} className="btn-secondary w-full">
-          {busyLens != null ? 'Interpreting…' : `Interpret through the ${LENSES.find((l) => l.id === active)?.name} lens ✨`}
+          {busyLens != null ? (
+            'Interpreting…'
+          ) : (
+            <>
+              <Icon name="sparkle" size={16} /> Interpret through the {LENSES.find((l) => l.id === active)?.name} lens
+            </>
+          )}
         </button>
       ) : (
-        <p className="rounded-xl bg-night-700/40 p-4 text-sm text-dusk-300">
+        <p className="inset-panel p-4 text-sm text-ivory-300">
           AI interpretation needs an Anthropic API key (Settings). Meanwhile, the symbol encyclopedia below covers the
           classic meanings of what appeared in this dream.
         </p>
       )}
-      {error && <p className="text-sm text-ember-300">{error}</p>}
+      {error && <p className="text-sm text-amber-300">{error}</p>}
 
       {matched.length > 0 && (
         <div>
           <h4 className="label mt-4">Symbols in this dream — from the encyclopedia</h4>
           <div className="flex flex-wrap gap-2">
             {matched.slice(0, 8).map((s) => (
-              <Link key={s.id} to={`/symbols?q=${encodeURIComponent(s.name)}`} className="chip hover:border-dusk-400">
-                🔮 {s.name}
+              <Link key={s.id} to={`/symbols?q=${encodeURIComponent(s.name)}`} className="chip hover:border-aurora-300">
+                <Icon name="sparkle" size={13} /> {s.name}
               </Link>
             ))}
           </div>
