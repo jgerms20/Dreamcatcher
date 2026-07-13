@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDreams } from '../store/dreams'
 import { blobsDB } from '../db'
@@ -6,26 +6,39 @@ import { newId, lastNightISO } from '../types'
 import { useDictation, dictationSupported } from '../services/speech'
 import { transcribeAudio, hasFalKey } from '../services/fal'
 
-type Mode = 'dictate' | 'import' | 'type'
+/** Append a spoken/transcribed segment to existing text without clobbering it or double-spacing. */
+function appendSpoken(base: string, addition: string): string {
+  const clean = addition.trim()
+  if (!clean) return base
+  if (!base) return clean
+  return /\s$/.test(base) ? base + clean : base + ' ' + clean
+}
 
 export default function Capture() {
   const navigate = useNavigate()
   const createDream = useDreams((s) => s.create)
-  const [mode, setMode] = useState<Mode>(dictationSupported() ? 'dictate' : 'type')
-  const [text, setText] = useState('')
-  const [title, setTitle] = useState('')
+  const [narrative, setNarrative] = useState('')
   const [dreamDate, setDreamDate] = useState(lastNightISO())
-  const [lucid, setLucid] = useState(false)
-  const [recurring, setRecurring] = useState(false)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const dictation = useDictation()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mirrorRef = useRef<HTMLDivElement>(null)
+
+  const dictation = useDictation({
+    onFinalSegment: (segment) => setNarrative((prev) => appendSpoken(prev, segment)),
+  })
+
+  // Keep the textarea (and its ghost-text mirror) scrolled to the newest words while dictating.
+  useEffect(() => {
+    if (!dictation.recording) return
+    if (textareaRef.current) textareaRef.current.scrollTop = textareaRef.current.scrollHeight
+    if (mirrorRef.current) mirrorRef.current.scrollTop = mirrorRef.current.scrollHeight
+  }, [narrative, dictation.interimText, dictation.recording])
 
   async function stopDictation() {
-    const { text: spoken, audio } = await dictation.stop()
-    if (spoken) setText((t) => (t ? t + '\n' + spoken : spoken))
+    const { audio } = await dictation.stop()
     if (audio) setAudioBlob(audio)
   }
 
@@ -33,13 +46,13 @@ export default function Capture() {
     setError(null)
     setAudioBlob(file)
     if (!hasFalKey()) {
-      setError('Audio saved — but transcription needs a fal.ai key (add one in Settings), or type what you remember below.')
+      setError('Audio attached — add a fal.ai key in Settings to auto-transcribe it, or type what you remember below.')
       return
     }
     try {
       setBusy('Transcribing audio…')
       const transcript = await transcribeAudio(file, setBusy)
-      setText((t) => (t ? t + '\n' + transcript : transcript))
+      setNarrative((prev) => appendSpoken(prev, transcript))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Transcription failed.')
     } finally {
@@ -48,7 +61,7 @@ export default function Capture() {
   }
 
   async function save() {
-    if (!text.trim()) {
+    if (!narrative.trim()) {
       setError('Describe at least a fragment of the dream first — even a single image counts.')
       return
     }
@@ -58,90 +71,79 @@ export default function Capture() {
       audioId = newId()
       await blobsDB.put({ id: audioId, kind: 'audio', mime: audioBlob.type || 'audio/webm', blob: audioBlob })
     }
-    const dream = await createDream({
-      title: title.trim(),
-      transcript: text.trim(),
-      dreamDate,
-      lucid,
-      recurring,
-      audioId,
-    })
+    const dream = await createDream({ transcript: narrative.trim(), dreamDate, audioId })
     navigate(`/dream/${dream.id}?fresh=1`)
   }
 
-  const tabs: { id: Mode; label: string }[] = [
-    { id: 'dictate', label: '🎙️ Dictate' },
-    { id: 'import', label: '📁 Import audio' },
-    { id: 'type', label: '⌨️ Type' },
-  ]
+  const mm = Math.floor(dictation.elapsed / 60)
+  const ss = String(dictation.elapsed % 60).padStart(2, '0')
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <header>
-        <h2 className="font-display text-3xl text-dusk-100">Catch the dream</h2>
-        <p className="mt-1 text-sm text-dusk-300">
-          Get it down before it dissolves — fragments are fine. You can expand it right after.
+    <div className="mx-auto max-w-2xl space-y-6">
+      <header className="reveal space-y-2">
+        <h1 className="font-display text-4xl text-dusk-100 sm:text-5xl">
+          Catch a <em>dream</em>
+        </h1>
+        <p className="text-sm text-dusk-300">
+          Speak or write it down before it dissolves — fragments are enough, you can shape it later.
         </p>
       </header>
 
-      <div className="flex gap-2">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setMode(t.id)}
-            className={t.id === mode ? 'btn-primary' : 'btn-secondary'}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {mode === 'dictate' && (
-        <div className="card space-y-4 p-5 text-center">
-          {!dictationSupported() && (
-            <p className="text-sm text-ember-300">
-              This browser doesn't support live dictation (try Chrome or Edge). You can still import an audio file or type.
-            </p>
-          )}
-          {dictation.recording ? (
-            <>
-              <button
-                onClick={() => void stopDictation()}
-                className="recording-pulse mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-dream text-3xl"
-                aria-label="Stop recording"
+      <section className="card card-glow reveal space-y-5 p-5 sm:p-7">
+        <div>
+          <label className="label" htmlFor="dream-text">Dream narrative</label>
+          <div className="relative">
+            <textarea
+              id="dream-text"
+              ref={textareaRef}
+              value={narrative}
+              onChange={(e) => setNarrative(e.target.value)}
+              readOnly={dictation.recording}
+              rows={10}
+              placeholder="I was standing in a house that was somehow also the ocean…"
+              className={`input font-prose min-h-56 resize-y ${dictation.recording ? 'text-transparent' : ''}`}
+              style={dictation.recording ? { caretColor: 'transparent' } : undefined}
+            />
+            {dictation.recording && (
+              <div
+                ref={mirrorRef}
+                aria-hidden="true"
+                className="input font-prose pointer-events-none absolute inset-0 min-h-56 overflow-y-auto whitespace-pre-wrap text-dusk-100"
               >
-                ⏹
-              </button>
-              <p className="text-sm text-dusk-300">
-                Recording {Math.floor(dictation.elapsed / 60)}:{String(dictation.elapsed % 60).padStart(2, '0')} — speak freely, in fragments if needed
-              </p>
-              <p className="min-h-12 rounded-xl bg-night-700/60 p-3 text-left text-sm text-dusk-200">
-                {dictation.finalText} <span className="text-dusk-400">{dictation.interimText}</span>
-              </p>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => void dictation.start()}
-                disabled={!dictationSupported()}
-                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-dusk-400 text-3xl text-night-950 transition-transform hover:scale-105 disabled:opacity-40"
-                aria-label="Start recording"
-              >
-                🎙️
-              </button>
-              <p className="text-sm text-dusk-300">Tap and start talking. The audio is kept alongside the transcript.</p>
-            </>
-          )}
-          {dictation.error && <p className="text-sm text-ember-300">{dictation.error}</p>}
+                {narrative}
+                {narrative && dictation.interimText ? ' ' : ''}
+                <span className="text-dusk-300/45">{dictation.interimText}</span>
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      {mode === 'import' && (
-        <div className="card space-y-3 p-5">
-          <p className="text-sm text-dusk-300">
-            Recorded a voice memo when you woke up? Import it here.
-            {hasFalKey() ? ' It will be transcribed automatically.' : ' Add a fal.ai key in Settings to auto-transcribe it.'}
-          </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <button
+            onClick={() => (dictation.recording ? void stopDictation() : void dictation.start())}
+            disabled={!dictationSupported()}
+            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-2xl transition-transform hover:scale-105 disabled:opacity-40 ${
+              dictation.recording ? 'recording-pulse bg-rose-dream text-dusk-100' : 'bg-dusk-400 text-night-950'
+            }`}
+            aria-label={dictation.recording ? 'Stop dictation' : 'Start dictation'}
+          >
+            {dictation.recording ? '⏹' : '🎙️'}
+          </button>
+          <div className="text-sm text-dusk-300">
+            {dictation.recording ? (
+              <span className="shimmer-text">listening… {mm}:{ss}</span>
+            ) : dictationSupported() ? (
+              <span>Tap to speak — your words stream in as you talk.</span>
+            ) : (
+              <span className="text-ember-300">Dictation isn't supported in this browser — try Chrome or Edge, or just type.</span>
+            )}
+          </div>
+        </div>
+
+        {dictation.error && <p className="text-sm text-ember-300">{dictation.error}</p>}
+
+        <div className="flex flex-wrap items-center gap-3">
+          {audioBlob && <span className="chip">🎙 voice recording attached</span>}
           <input
             ref={fileRef}
             type="file"
@@ -152,48 +154,33 @@ export default function Capture() {
               if (f) void handleFile(f)
             }}
           />
-          <button onClick={() => fileRef.current?.click()} className="btn-secondary w-full py-6">
-            {audioBlob ? '✓ Audio attached — choose a different file' : 'Choose an audio file…'}
+          <button onClick={() => fileRef.current?.click()} className="btn-ghost text-xs">
+            or import a voice memo
           </button>
         </div>
-      )}
 
-      <div className="card p-5">
-        <label className="label" htmlFor="dream-text">Dream narrative</label>
-        <textarea
-          id="dream-text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={mode === 'type' ? 10 : 6}
-          placeholder="I was standing in a house that was somehow also the ocean…"
-          className="input resize-y font-[family-name:var(--font-body)] leading-relaxed"
-        />
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label" htmlFor="dream-title">Title (optional)</label>
-            <input id="dream-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="The Ocean House" className="input" />
-          </div>
-          <div>
-            <label className="label" htmlFor="dream-date">Night of</label>
-            <input id="dream-date" type="date" value={dreamDate} onChange={(e) => setDreamDate(e.target.value)} className="input" />
-          </div>
+        <div className="rule" />
+
+        <div className="max-w-[12rem]">
+          <label className="label" htmlFor="dream-date">Night of</label>
+          <input
+            id="dream-date"
+            type="date"
+            value={dreamDate}
+            onChange={(e) => setDreamDate(e.target.value)}
+            className="input"
+          />
         </div>
-        <div className="mt-4 flex flex-wrap gap-4 text-sm text-dusk-200">
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="checkbox" checked={lucid} onChange={(e) => setLucid(e.target.checked)} className="accent-dusk-400" />
-            👁️ I knew I was dreaming (lucid)
-          </label>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} className="accent-dusk-400" />
-            🔁 I've had this dream before
-          </label>
-        </div>
-      </div>
+      </section>
 
-      {error && <p className="text-sm text-ember-300">{error}</p>}
-      {busy && <p className="text-sm text-aurora-300">{busy}</p>}
+      {error && <p className="reveal text-sm text-ember-300">{error}</p>}
+      {busy && <p className="reveal shimmer-text text-sm">{busy}</p>}
 
-      <button onClick={() => void save()} disabled={Boolean(busy) || dictation.recording} className="btn-primary w-full py-3 text-base">
+      <button
+        onClick={() => void save()}
+        disabled={Boolean(busy) || dictation.recording}
+        className="btn-primary reveal w-full py-3 text-base"
+      >
         Save dream →
       </button>
     </div>

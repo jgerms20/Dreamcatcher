@@ -44,24 +44,26 @@ export default function Insights() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h2 className="font-display text-3xl text-dusk-100">Insights</h2>
+      <header className="reveal">
+        <h2 className="font-display text-3xl text-dusk-100">
+          Insights <em>across your dreams</em>
+        </h2>
         <p className="mt-1 text-sm text-dusk-300">What your dream life keeps returning to.</p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="card p-5">
+        <section className="card p-5 reveal">
           <h3 className="font-display text-lg text-dusk-100">Recurring symbols</h3>
           {symbolCounts.length ? (
-            <div className="mt-4"><BarList items={symbolCounts} /></div>
+            <div className="mt-4"><BarList items={symbolCounts} color="#d4a24e" /></div>
           ) : (
             <p className="mt-3 text-sm text-dusk-400">Symbols appear here after dreams are analyzed (✨ on a dream page).</p>
           )}
         </section>
-        <section className="card p-5">
+        <section className="card p-5 reveal">
           <h3 className="font-display text-lg text-dusk-100">Recurring emotions</h3>
           {emotionCounts.length ? (
-            <div className="mt-4"><BarList items={emotionCounts} color="var(--color-viz-2)" /></div>
+            <div className="mt-4"><BarList items={emotionCounts} color="#1d968b" /></div>
           ) : (
             <p className="mt-3 text-sm text-dusk-400">Emotions appear here after dreams are analyzed.</p>
           )}
@@ -69,7 +71,7 @@ export default function Insights() {
       </div>
 
       {moodTrend.length > 0 && (
-        <section className="card p-5">
+        <section className="card p-5 reveal">
           <h3 className="font-display text-lg text-dusk-100">Emotional tone over time</h3>
           <div className="mt-4">
             <TrendChart
@@ -81,6 +83,7 @@ export default function Insights() {
                 { value: 0, label: 'neutral' },
                 { value: -2, label: 'nightmare' },
               ]}
+              color="#8b7fd4"
             />
           </div>
         </section>
@@ -112,9 +115,9 @@ function PatternsPanel({ ai }: { ai: boolean }) {
   }
 
   return (
-    <section className="card p-5">
+    <section className="card p-5 reveal">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-display text-lg text-dusk-100">Pattern reading ✨</h3>
+        <h3 className="font-display text-lg text-dusk-100">Pattern reading <em>✨</em></h3>
         <button onClick={() => void run()} disabled={!ai || busy || dreams.length < 2} className="btn-secondary text-xs">
           {busy ? 'Reading the journal…' : 'Analyze my dream journal'}
         </button>
@@ -123,7 +126,7 @@ function PatternsPanel({ ai }: { ai: boolean }) {
       {dreams.length < 2 && <p className="mt-2 text-xs text-dusk-400">Needs at least two dreams.</p>}
       {error && <p className="mt-2 text-sm text-ember-300">{error}</p>}
       {text != null && (
-        <div className="mt-4 rounded-xl bg-night-700/40 p-4 text-sm">
+        <div className="font-prose mt-4 rounded-xl bg-night-700/40 p-4 text-sm">
           <Markdown text={text} />
           {busy && <span className="animate-pulse text-dusk-300">▋</span>}
         </div>
@@ -162,8 +165,8 @@ function ComparePanel({ ai }: { ai: boolean }) {
   }
 
   return (
-    <section className="card p-5">
-      <h3 className="font-display text-lg text-dusk-100">Compare two dreams ✨</h3>
+    <section className="card p-5 reveal">
+      <h3 className="font-display text-lg text-dusk-100">Compare two dreams <em>✨</em></h3>
       <p className="mt-1 text-xs text-dusk-400">Side-by-side reading: shared symbols, inverted themes, and what the pair says together.</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {[{ v: aId, set: setAId, ph: 'First dream…' }, { v: bId, set: setBId, ph: 'Second dream…' }].map((sel, i) => (
@@ -183,7 +186,7 @@ function ComparePanel({ ai }: { ai: boolean }) {
       {!ai && <p className="mt-2 text-xs text-dusk-400">Needs an Anthropic key (Settings).</p>}
       {error && <p className="mt-2 text-sm text-ember-300">{error}</p>}
       {text != null && (
-        <div className="mt-4 rounded-xl bg-night-700/40 p-4 text-sm">
+        <div className="font-prose mt-4 rounded-xl bg-night-700/40 p-4 text-sm">
           <Markdown text={text} />
           {busy && <span className="animate-pulse text-dusk-300">▋</span>}
         </div>

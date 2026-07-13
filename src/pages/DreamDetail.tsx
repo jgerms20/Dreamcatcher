@@ -93,9 +93,9 @@ export default function DreamDetail() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <header className="space-y-2">
+      <header className="reveal space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <Link to="/" className="text-sm text-dusk-300 hover:text-dusk-100">← Journal</Link>
+          <Link to="/" className="text-sm text-dusk-300 transition-colors hover:text-dusk-100">← Journal</Link>
           <button
             onClick={() => {
               if (confirm('Delete this dream and its media? This cannot be undone.')) {
@@ -111,25 +111,34 @@ export default function DreamDetail() {
           value={dream.title}
           onChange={(e) => void update(dream.id, { title: e.target.value })}
           placeholder="Untitled dream — click to name it"
-          className="font-display w-full bg-transparent text-3xl text-dusk-100 placeholder-dusk-400/40 focus:outline-none"
+          className="font-display w-full bg-transparent text-4xl text-dusk-100 placeholder-dusk-400/40 focus:outline-none"
         />
         <div className="flex flex-wrap items-center gap-2 text-sm text-dusk-300">
           <span>{fmtDate(dream.dreamDate)}</span>
-          {mood && <span className="chip">{mood.emoji} {mood.label}</span>}
-          {dream.vividness != null && <span className="chip">vividness {dream.vividness}/5</span>}
-          {dream.lucid && <span className="chip">👁️ lucid</span>}
-          {dream.recurring && <span className="chip">🔁 recurring</span>}
+          {mood && <span className="chip text-xs">{mood.emoji} {mood.label}</span>}
+          {dream.vividness != null && <span className="chip text-xs">vividness {dream.vividness}/5</span>}
+          <button
+            onClick={() => void update(dream.id, { recurring: !dream.recurring })}
+            className={
+              dream.recurring
+                ? 'chip text-xs border-dusk-400/50 text-dusk-100'
+                : 'chip text-xs text-dusk-400/60 opacity-70 hover:opacity-100 hover:text-dusk-300'
+            }
+            title="Toggle: this dream recurs"
+          >
+            🔁 recurring
+          </button>
         </div>
       </header>
 
       {fresh && !dream.rubric && (
-        <div className="card border-dusk-400/40 p-4 text-sm text-dusk-200">
+        <div className="reveal card border-dusk-400/40 p-4 text-sm text-dusk-200">
           🌙 Dream caught. Now — while it's still warm — deepen the recall below{ai ? '' : ' with the interview'}, then interpret and visualize it.
         </div>
       )}
 
       {/* Dream reel */}
-      <section className="card overflow-hidden">
+      <section className="reveal card overflow-hidden">
         {videoSrc ? (
           <video src={videoSrc} controls loop className="aspect-video w-full bg-night-950 object-contain" />
         ) : (
@@ -142,13 +151,13 @@ export default function DreamDetail() {
         {audioUrl && (
           <div className="border-t border-night-600/60 p-3">
             <p className="label">Original recording</p>
-            <audio src={audioUrl} controls className="w-full" />
+            <audio src={audioUrl} controls className="w-full accent-dusk-400" />
           </div>
         )}
       </section>
 
       {/* Narrative */}
-      <section className="card p-5">
+      <section className="reveal card p-5">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-xl text-dusk-100">The dream</h3>
           {editingText ? (
@@ -161,9 +170,9 @@ export default function DreamDetail() {
           )}
         </div>
         {editingText ? (
-          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={8} className="input mt-3 resize-y" />
+          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={8} className="input font-prose mt-3 resize-y" />
         ) : (
-          <p className="mt-3 whitespace-pre-wrap leading-relaxed text-dusk-200">{dream.transcript}</p>
+          <p className="font-prose mt-3 whitespace-pre-wrap text-dusk-200">{dream.transcript}</p>
         )}
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
           {dream.emotions.map((e) => <span key={e} className="chip">{e}</span>)}
@@ -183,12 +192,12 @@ export default function DreamDetail() {
       </section>
 
       {/* Recall */}
-      <section className="card p-5">
+      <section className="reveal card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-display text-xl text-dusk-100">Deepen the recall</h3>
           {ai && (
-            <button onClick={() => void analyze()} disabled={analyzing} className="btn-secondary text-xs">
-              {analyzing ? 'Scoring…' : dream.rubric ? '↻ Re-score recall ✨' : 'Score my recall ✨'}
+            <button onClick={() => void analyze()} disabled={analyzing} className="btn-ghost text-xs">
+              {analyzing ? 'Scoring…' : dream.rubric ? '↻ Re-score recall' : 'Score my recall ✨'}
             </button>
           )}
         </div>
@@ -197,11 +206,8 @@ export default function DreamDetail() {
           <div className="mt-3 grid items-center gap-4 md:grid-cols-2">
             <RubricRadar rubric={dream.rubric} />
             <div>
-              <p className="font-display text-4xl text-dusk-100">
-                {dream.rubric.overall}<span className="text-lg text-dusk-300">/100</span>
-              </p>
               <p className="text-xs uppercase tracking-wider text-dusk-300">recall score</p>
-              <p className="mt-3 text-sm leading-relaxed text-dusk-200">{dream.rubric.summary}</p>
+              <p className="mt-2 text-sm leading-relaxed text-dusk-200">{dream.rubric.summary}</p>
             </div>
           </div>
         )}
@@ -211,7 +217,7 @@ export default function DreamDetail() {
       </section>
 
       {/* Interpretation */}
-      <section className="card p-5">
+      <section className="reveal card p-5">
         <h3 className="font-display text-xl text-dusk-100">Interpretation</h3>
         <p className="mt-1 mb-4 text-xs text-dusk-400">
           Four traditions, four readings — each explains where its ideas come from. Treat them as mirrors to try, not verdicts.
@@ -220,7 +226,7 @@ export default function DreamDetail() {
       </section>
 
       {/* Dream Studio */}
-      <section className="card p-5">
+      <section className="reveal card p-5">
         <h3 className="font-display text-xl text-dusk-100">Dream Studio</h3>
         <p className="mt-1 mb-4 text-xs text-dusk-400">
           Replay the dream as a short film: Claude directs a cinematic prompt from everything above, fal.ai renders it.

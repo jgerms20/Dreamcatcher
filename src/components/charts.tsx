@@ -27,7 +27,7 @@ interface ScatterProps {
   color?: string
 }
 
-export function ScatterChart({ points, xLabel, yLabel, color = 'var(--color-viz-2)' }: ScatterProps) {
+export function ScatterChart({ points, xLabel, yLabel, color = '#1d968b' }: ScatterProps) {
   const W = 340
   const H = 220
   const PAD = { l: 40, r: 12, t: 12, b: 34 }
@@ -44,23 +44,23 @@ export function ScatterChart({ points, xLabel, yLabel, color = 'var(--color-viz-
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`${yLabel} vs ${xLabel}`}>
-      <line x1={PAD.l} y1={H - PAD.b} x2={W - PAD.r} y2={H - PAD.b} stroke="var(--color-night-500)" strokeWidth={1} />
-      <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={H - PAD.b} stroke="var(--color-night-500)" strokeWidth={1} />
+      <line x1={PAD.l} y1={H - PAD.b} x2={W - PAD.r} y2={H - PAD.b} stroke="rgba(207,196,174,0.12)" strokeWidth={1} />
+      <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={H - PAD.b} stroke="rgba(207,196,174,0.12)" strokeWidth={1} />
       {points.map((p, i) => (
-        <circle key={i} cx={px(p.x)} cy={py(p.y)} r={5} fill={color} fillOpacity={0.85} stroke="var(--color-night-800)" strokeWidth={1.5}>
+        <circle key={i} cx={px(p.x)} cy={py(p.y)} r={5} fill={color} fillOpacity={0.85} stroke="#10131f" strokeWidth={1.5}>
           <title>{p.label}</title>
         </circle>
       ))}
-      <text x={(PAD.l + W - PAD.r) / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--color-dusk-300)">
+      <text x={(PAD.l + W - PAD.r) / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="#f0ead9">
         {xLabel}
       </text>
-      <text x={12} y={(PAD.t + H - PAD.b) / 2} textAnchor="middle" fontSize={11} fill="var(--color-dusk-300)" transform={`rotate(-90 12 ${(PAD.t + H - PAD.b) / 2})`}>
+      <text x={12} y={(PAD.t + H - PAD.b) / 2} textAnchor="middle" fontSize={11} fill="#f0ead9" transform={`rotate(-90 12 ${(PAD.t + H - PAD.b) / 2})`}>
         {yLabel}
       </text>
-      <text x={PAD.l - 6} y={py(yMax) + 4} textAnchor="end" fontSize={10} fill="var(--color-dusk-300)">{fmt(yMax)}</text>
-      <text x={PAD.l - 6} y={py(yMin) + 4} textAnchor="end" fontSize={10} fill="var(--color-dusk-300)">{fmt(yMin)}</text>
-      <text x={px(xMin)} y={H - PAD.b + 14} textAnchor="middle" fontSize={10} fill="var(--color-dusk-300)">{fmt(xMin)}</text>
-      <text x={px(xMax)} y={H - PAD.b + 14} textAnchor="middle" fontSize={10} fill="var(--color-dusk-300)">{fmt(xMax)}</text>
+      <text x={PAD.l - 6} y={py(yMax) + 4} textAnchor="end" fontSize={10} fill="rgba(207,196,174,0.5)">{fmt(yMax)}</text>
+      <text x={PAD.l - 6} y={py(yMin) + 4} textAnchor="end" fontSize={10} fill="rgba(207,196,174,0.5)">{fmt(yMin)}</text>
+      <text x={px(xMin)} y={H - PAD.b + 14} textAnchor="middle" fontSize={10} fill="rgba(207,196,174,0.5)">{fmt(xMin)}</text>
+      <text x={px(xMax)} y={H - PAD.b + 14} textAnchor="middle" fontSize={10} fill="rgba(207,196,174,0.5)">{fmt(xMax)}</text>
     </svg>
   )
 }
@@ -76,7 +76,7 @@ interface BarListProps {
 }
 
 // Horizontal bar list with baseline-anchored bars and direct labels.
-export function BarList({ items, color = 'var(--color-viz-1)', max }: BarListProps) {
+export function BarList({ items, color = '#c0702a', max }: BarListProps) {
   const top = max ?? Math.max(...items.map((i) => i.value), 1)
   return (
     <div className="space-y-2">
@@ -103,7 +103,7 @@ interface TrendPoint {
 }
 
 // Time trend as dots on a 2px line; y domain fixed by caller.
-export function TrendChart({ points, yMin, yMax, yTicks, color = 'var(--color-viz-4)' }: {
+export function TrendChart({ points, yMin, yMax, yTicks, color = '#8b7fd4' }: {
   points: TrendPoint[]
   yMin: number
   yMax: number
@@ -122,21 +122,21 @@ export function TrendChart({ points, yMin, yMax, yTicks, color = 'var(--color-vi
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Trend over time">
       {(yTicks ?? []).map((t) => (
         <g key={t.value}>
-          <line x1={PAD.l} y1={py(t.value)} x2={W - PAD.r} y2={py(t.value)} stroke="var(--color-night-600)" strokeWidth={1} strokeDasharray="2 4" />
-          <text x={PAD.l - 8} y={py(t.value) + 3} textAnchor="end" fontSize={10} fill="var(--color-dusk-300)">{t.label}</text>
+          <line x1={PAD.l} y1={py(t.value)} x2={W - PAD.r} y2={py(t.value)} stroke="rgba(207,196,174,0.12)" strokeWidth={1} strokeDasharray="2 4" />
+          <text x={PAD.l - 8} y={py(t.value) + 3} textAnchor="end" fontSize={10} fill="rgba(224,216,198,0.75)">{t.label}</text>
         </g>
       ))}
       {n > 1 && <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />}
       {points.map((p, i) => (
-        <circle key={i} cx={px(i)} cy={py(p.value)} r={4.5} fill={color} stroke="var(--color-night-800)" strokeWidth={2}>
+        <circle key={i} cx={px(i)} cy={py(p.value)} r={4.5} fill={color} stroke="#10131f" strokeWidth={2}>
           <title>{p.label}</title>
         </circle>
       ))}
       {n > 0 && (
         <>
-          <text x={px(0)} y={H - 8} textAnchor="start" fontSize={10} fill="var(--color-dusk-300)">{points[0].date}</text>
+          <text x={px(0)} y={H - 8} textAnchor="start" fontSize={10} fill="rgba(224,216,198,0.75)">{points[0].date}</text>
           {n > 1 && (
-            <text x={px(n - 1)} y={H - 8} textAnchor="end" fontSize={10} fill="var(--color-dusk-300)">{points[n - 1].date}</text>
+            <text x={px(n - 1)} y={H - 8} textAnchor="end" fontSize={10} fill="rgba(224,216,198,0.75)">{points[n - 1].date}</text>
           )}
         </>
       )}
