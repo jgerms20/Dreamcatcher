@@ -103,7 +103,7 @@ interface TrendPoint {
 }
 
 // Time trend as dots on a 2px line; y domain fixed by caller.
-export function TrendChart({ points, yMin, yMax, yTicks, color = 'var(--color-viz-4)' }: {
+export function TrendChart({ points, yMin, yMax, yTicks, color = '#8b7fd4' }: {
   points: TrendPoint[]
   yMin: number
   yMax: number
@@ -122,21 +122,21 @@ export function TrendChart({ points, yMin, yMax, yTicks, color = 'var(--color-vi
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Trend over time">
       {(yTicks ?? []).map((t) => (
         <g key={t.value}>
-          <line x1={PAD.l} y1={py(t.value)} x2={W - PAD.r} y2={py(t.value)} stroke="var(--color-night-600)" strokeWidth={1} strokeDasharray="2 4" />
-          <text x={PAD.l - 8} y={py(t.value) + 3} textAnchor="end" fontSize={10} fill="var(--color-dusk-300)">{t.label}</text>
+          <line x1={PAD.l} y1={py(t.value)} x2={W - PAD.r} y2={py(t.value)} stroke="rgba(207,196,174,0.12)" strokeWidth={1} strokeDasharray="2 4" />
+          <text x={PAD.l - 8} y={py(t.value) + 3} textAnchor="end" fontSize={10} fill="rgba(224,216,198,0.75)">{t.label}</text>
         </g>
       ))}
       {n > 1 && <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />}
       {points.map((p, i) => (
-        <circle key={i} cx={px(i)} cy={py(p.value)} r={4.5} fill={color} stroke="var(--color-night-800)" strokeWidth={2}>
+        <circle key={i} cx={px(i)} cy={py(p.value)} r={4.5} fill={color} stroke="#10131f" strokeWidth={2}>
           <title>{p.label}</title>
         </circle>
       ))}
       {n > 0 && (
         <>
-          <text x={px(0)} y={H - 8} textAnchor="start" fontSize={10} fill="var(--color-dusk-300)">{points[0].date}</text>
+          <text x={px(0)} y={H - 8} textAnchor="start" fontSize={10} fill="rgba(224,216,198,0.75)">{points[0].date}</text>
           {n > 1 && (
-            <text x={px(n - 1)} y={H - 8} textAnchor="end" fontSize={10} fill="var(--color-dusk-300)">{points[n - 1].date}</text>
+            <text x={px(n - 1)} y={H - 8} textAnchor="end" fontSize={10} fill="rgba(224,216,198,0.75)">{points[n - 1].date}</text>
           )}
         </>
       )}

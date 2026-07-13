@@ -31,16 +31,26 @@ export function dictationSupported(): boolean {
 
 export interface DictationState {
   recording: boolean
-  finalText: string
+  /** Not-yet-final words for the current utterance — render as dim/ghost trailing text. */
   interimText: string
   error: string | null
   elapsed: number
 }
 
-export function useDictation() {
+export interface UseDictationOptions {
+  /**
+   * Called with each newly finalized chunk of speech (trimmed, whitespace-normalized)
+   * as soon as the recognizer commits it — including a final flush of any leftover
+   * interim words when dictation stops. The consumer owns the single source-of-truth
+   * narrative string and should append each segment to it; this hook never buffers or
+   * replaces the consumer's text itself.
+   */
+  onFinalSegment?: (segment: string) => void
+}
+
+export function useDictation(options: UseDictationOptions = {}) {
   const [state, setState] = useState<DictationState>({
     recording: false,
-    finalText: '',
     interimText: '',
     error: null,
     elapsed: 0,
@@ -51,6 +61,9 @@ export function useDictation() {
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const keepAliveRef = useRef(false)
+  const interimRef = useRef('')
+  const onFinalSegmentRef = useRef(options.onFinalSegment)
+  onFinalSegmentRef.current = options.onFinalSegment
 
   const cleanup = useCallback(() => {
     keepAliveRef.current = false
@@ -94,11 +107,10 @@ export function useDictation() {
           if (r.isFinal) finals += r[0].transcript
           else interim += r[0].transcript
         }
-        setState((s) => ({
-          ...s,
-          finalText: finals ? (s.finalText + ' ' + finals).replace(/\s+/g, ' ').trimStart() : s.finalText,
-          interimText: interim,
-        }))
+        interimRef.current = interim
+        const clean = finals.replace(/\s+/g, ' ').trim()
+        if (clean) onFinalSegmentRef.current?.(clean)
+        setState((s) => ({ ...s, interimText: interim }))
       }
       rec.onerror = (e) => {
         if (e.error === 'no-speech') return // keep listening
@@ -113,18 +125,19 @@ export function useDictation() {
       keepAliveRef.current = true
       rec.start()
       recognitionRef.current = rec
+      interimRef.current = ''
 
       const startedAt = Date.now()
       timerRef.current = setInterval(() => {
         setState((s) => ({ ...s, elapsed: Math.floor((Date.now() - startedAt) / 1000) }))
       }, 1000)
-      setState({ recording: true, finalText: '', interimText: '', error: null, elapsed: 0 })
+      setState({ recording: true, interimText: '', error: null, elapsed: 0 })
     } catch {
       setState((s) => ({ ...s, error: 'Microphone access was denied. Allow the mic permission, or type your dream instead.' }))
     }
   }, [])
 
-  const stop = useCallback(async (): Promise<{ text: string; audio: Blob | null }> => {
+  const stop = useCallback(async (): Promise<{ audio: Blob | null }> => {
     keepAliveRef.current = false
     recognitionRef.current?.stop()
     const recorder = recorderRef.current
@@ -139,13 +152,14 @@ export function useDictation() {
       recorder.stop()
     })
     cleanup()
-    let text = ''
-    setState((s) => {
-      text = (s.finalText + ' ' + s.interimText).replace(/\s+/g, ' ').trim()
-      return { ...s, recording: false, interimText: '' }
-    })
-    // setState updater runs synchronously enough in React 19, but read from a snapshot to be safe:
-    return new Promise((resolve) => setTimeout(() => resolve({ text, audio }), 0))
+    // Give a trailing final-flush 'result' event (some browsers emit one on stop()) a beat to arrive
+    // before we treat whatever interim text remains as the last word on this session.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const leftover = interimRef.current.trim()
+    interimRef.current = ''
+    if (leftover) onFinalSegmentRef.current?.(leftover)
+    setState((s) => ({ ...s, recording: false, interimText: '' }))
+    return { audio }
   }, [cleanup])
 
   return { ...state, start, stop }

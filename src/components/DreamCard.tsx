@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom'
 import type { Dream } from '../types'
 
 export const MOOD_META: Record<number, { label: string; emoji: string; color: string }> = {
-  [-2]: { label: 'Nightmare', emoji: '🌩️', color: 'var(--color-viz-4)' },
-  [-1]: { label: 'Unsettling', emoji: '🌫️', color: 'var(--color-viz-3)' },
-  [0]: { label: 'Neutral', emoji: '🌙', color: 'var(--color-dusk-400)' },
-  [1]: { label: 'Pleasant', emoji: '🌤️', color: 'var(--color-viz-2)' },
-  [2]: { label: 'Blissful', emoji: '🌈', color: 'var(--color-aurora-400)' },
+  [-2]: { label: 'Nightmare', emoji: '🌩️', color: '#8b7fd4' },
+  [-1]: { label: 'Unsettling', emoji: '🌫️', color: '#c5537b' },
+  [0]: { label: 'Neutral', emoji: '🌙', color: '#d4a24e' },
+  [1]: { label: 'Pleasant', emoji: '🌤️', color: '#1d968b' },
+  [2]: { label: 'Blissful', emoji: '🌈', color: '#7fa3d8' },
 }
 
 export function fmtDate(iso: string): string {
@@ -24,7 +24,7 @@ export default function DreamCard({ dream }: { dream: Dream }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs text-dusk-300/80">{fmtDate(dream.dreamDate)}</p>
+          <p className="text-xs font-mono uppercase tracking-wide text-dusk-300/60">{fmtDate(dream.dreamDate)}</p>
           <h3 className="font-display mt-0.5 truncate text-lg text-dusk-100">
             {dream.title || 'Untitled dream'}
           </h3>
@@ -32,17 +32,19 @@ export default function DreamCard({ dream }: { dream: Dream }) {
         <div className="flex shrink-0 items-center gap-1.5 text-base">
           {dream.videoId || dream.videoUrl ? <span title="Has video">🎬</span> : null}
           {dream.audioId ? <span title="Has audio">🎙️</span> : null}
-          {dream.lucid ? <span title="Lucid dream">👁️</span> : null}
-          {dream.recurring ? <span title="Recurring dream">🔁</span> : null}
+          {dream.recurring ? <span title="Recurring dream">↻</span> : null}
           {mood ? <span title={mood.label}>{mood.emoji}</span> : null}
         </div>
       </div>
-      <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-dusk-200/90">{dream.transcript}</p>
+      <p className="font-prose mt-2 line-clamp-3 text-sm text-dusk-200/90">{dream.transcript}</p>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         {dream.rubric && (
           <span className="chip" title="Recall score">
             recall {dream.rubric.overall}
           </span>
+        )}
+        {dream.recurring && (
+          <span className="chip text-sm">↻ recurring</span>
         )}
         {dream.symbols.slice(0, 4).map((s) => (
           <span key={s} className="chip">{s}</span>

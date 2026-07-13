@@ -45,13 +45,13 @@ export default function ReplayMode({ dreams, onClose }: { dreams: Dream[]; onClo
   if (!dream) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-night-950/98">
-      <div className="flex items-center justify-between p-4">
+    <div className="fixed inset-0 z-50 flex flex-col bg-night-950/95">
+      <div className="flex items-center justify-between border-b border-night-700/60 p-4">
         <div>
-          <p className="text-xs text-dusk-300">{fmtDate(dream.dreamDate)} · {index + 1} / {dreams.length}</p>
+          <p className="text-xs text-dusk-300/70">{fmtDate(dream.dreamDate)} · {index + 1} / {dreams.length}</p>
           <h3 className="font-display text-lg text-dusk-100">{dream.title || 'Untitled dream'}</h3>
         </div>
-        <button onClick={onClose} className="btn-ghost text-xl" aria-label="Close replay">✕</button>
+        <button onClick={onClose} className="btn-ghost text-xl transition-colors hover:text-dusk-100" aria-label="Close replay">✕</button>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center px-4">
         {src ? (
@@ -67,7 +67,7 @@ export default function ReplayMode({ dreams, onClose }: { dreams: Dream[]; onClo
           <p className="text-dusk-300">Loading…</p>
         )}
       </div>
-      <div className="flex items-center justify-center gap-4 p-4">
+      <div className="flex items-center justify-center gap-4 border-t border-night-700/60 p-4">
         <button onClick={() => setIndex((i) => Math.max(i - 1, 0))} disabled={index === 0} className="btn-secondary">← Prev</button>
         <button onClick={() => setIndex((i) => Math.min(i + 1, dreams.length - 1))} disabled={index >= dreams.length - 1} className="btn-secondary">Next →</button>
       </div>
