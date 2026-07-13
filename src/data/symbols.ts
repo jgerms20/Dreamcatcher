@@ -15,6 +15,18 @@ export const SYMBOL_CATEGORIES = [
   'People & Figures', 'Life & Death', 'Objects', 'Situations',
 ] as const
 
+export const CATEGORY_META: Record<string, { tint: string; border: string; text: string; glyph: string }> = {
+  'Body': { tint: 'bg-[#c26787]/10', border: 'border-[#c26787]/40', text: 'text-[#c26787]', glyph: '❦' },
+  'Nature & Elements': { tint: 'bg-[#7fa3d8]/10', border: 'border-[#7fa3d8]/40', text: 'text-[#7fa3d8]', glyph: '☽' },
+  'Animals': { tint: 'bg-[#c96342]/10', border: 'border-[#c96342]/40', text: 'text-[#c96342]', glyph: '⚘' },
+  'Movement & Travel': { tint: 'bg-[#d4a24e]/10', border: 'border-[#d4a24e]/40', text: 'text-[#d4a24e]', glyph: '➳' },
+  'Places & Structures': { tint: 'bg-[#cfc4ae]/10', border: 'border-[#cfc4ae]/40', text: 'text-[#cfc4ae]', glyph: '⌂' },
+  'People & Figures': { tint: 'bg-[#a9c4e8]/10', border: 'border-[#a9c4e8]/40', text: 'text-[#a9c4e8]', glyph: '✧' },
+  'Life & Death': { tint: 'bg-[#c26787]/10', border: 'border-[#c26787]/40', text: 'text-[#c26787]', glyph: '⊙' },
+  'Objects': { tint: 'bg-[#e08a6a]/10', border: 'border-[#e08a6a]/40', text: 'text-[#e08a6a]', glyph: '✳' },
+  'Situations': { tint: 'bg-[#d4a24e]/10', border: 'border-[#d4a24e]/40', text: 'text-[#d4a24e]', glyph: '◆' },
+}
+
 export const SYMBOLS: DreamSymbol[] = [
   {
     id: 'teeth-falling-out', name: 'Teeth Falling Out', aliases: ['teeth', 'losing teeth', 'crumbling teeth', 'tooth'], category: 'Body',

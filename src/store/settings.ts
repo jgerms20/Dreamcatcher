@@ -8,12 +8,28 @@ export const CLAUDE_MODELS = [
 ]
 
 export const VIDEO_MODELS = [
-  { id: 'fal-ai/ltx-video', name: 'LTX Video (fast & cheap)' },
-  { id: 'fal-ai/kling-video/v2/master/text-to-video', name: 'Kling 2.0 Master (high quality)' },
+  { id: 'fal-ai/ltx-2.3/text-to-video/fast', name: 'LTX 2.3 Fast (quick & cheap)' },
+  { id: 'fal-ai/ltx-2/text-to-video', name: 'LTX 2.0 Pro (high fidelity + audio)' },
   { id: 'fal-ai/minimax/video-01', name: 'MiniMax Hailuo (cinematic)' },
-  { id: 'fal-ai/hunyuan-video', name: 'Hunyuan Video (open model)' },
-  { id: 'fal-ai/veo3', name: 'Google Veo 3 (premium)' },
+  { id: 'fal-ai/kling-video/v3/pro/text-to-video', name: 'Kling 3.0 Pro (premium)' },
+  { id: 'fal-ai/veo3.1', name: 'Google Veo 3.1 (premium)' },
 ]
+
+const DEFAULT_VIDEO_MODEL = 'fal-ai/ltx-2.3/text-to-video/fast'
+
+// Video model ids that fal.ai has since retired/renamed. Anyone who picked one of these
+// before the endpoint moved would otherwise have it stuck in localStorage forever, silently
+// failing every generation. Map them to their closest modern replacement.
+export const DEAD_VIDEO_MODEL_MAP: Record<string, string> = {
+  'fal-ai/ltx-video': 'fal-ai/ltx-2.3/text-to-video/fast',
+  'fal-ai/hunyuan-video': 'fal-ai/minimax/video-01',
+  'fal-ai/kling-video/v2/master/text-to-video': 'fal-ai/kling-video/v3/pro/text-to-video',
+  'fal-ai/veo3': 'fal-ai/veo3.1',
+}
+
+export function resolveVideoModel(id: string): string {
+  return DEAD_VIDEO_MODEL_MAP[id] ?? id
+}
 
 interface SettingsState {
   anthropicKey: string
@@ -34,7 +50,7 @@ export const useSettings = create<SettingsState>()(
       anthropicKey: '',
       falKey: '',
       claudeModel: 'claude-opus-4-8',
-      videoModel: 'fal-ai/ltx-video',
+      videoModel: DEFAULT_VIDEO_MODEL,
       customVideoModel: '',
       setAnthropicKey: (anthropicKey) => set({ anthropicKey }),
       setFalKey: (falKey) => set({ falKey }),
@@ -42,10 +58,24 @@ export const useSettings = create<SettingsState>()(
       setVideoModel: (videoModel) => set({ videoModel }),
       setCustomVideoModel: (customVideoModel) => set({ customVideoModel }),
     }),
-    { name: 'dreamcatcher-settings' },
+    {
+      name: 'dreamcatcher-settings',
+      version: 1,
+      // v0 -> v1: fal.ai retired several video endpoints (see DEAD_VIDEO_MODEL_MAP). Rewrite
+      // any persisted selection that points at a dead id so old installs don't keep silently
+      // submitting to a 404'd model.
+      migrate: (persisted, version) => {
+        const state = persisted as SettingsState
+        if (version < 1 && state && typeof state.videoModel === 'string') {
+          state.videoModel = resolveVideoModel(state.videoModel)
+        }
+        return state
+      },
+    },
   ),
 )
 
 export function effectiveVideoModel(s: Pick<SettingsState, 'videoModel' | 'customVideoModel'>) {
-  return s.customVideoModel.trim() || s.videoModel
+  const chosen = s.customVideoModel.trim() || s.videoModel
+  return resolveVideoModel(chosen)
 }
