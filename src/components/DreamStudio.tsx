@@ -1,10 +1,37 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDreams } from '../store/dreams'
 import { blobsDB } from '../db'
 import { newId, type Dream } from '../types'
 import { generateVideoPrompt, hasClaudeKey } from '../services/claude'
 import { generateVideo, fetchVideoBlob, hasFalKey } from '../services/fal'
-import { useSettings, VIDEO_MODELS } from '../store/settings'
+import { useSettings, VIDEO_MODELS, effectiveVideoModel } from '../store/settings'
+
+// No shared blob-url hook lives in src/components (DreamDetail.tsx keeps a local, unexported
+// copy in src/pages), so this is a small local re-implementation kept private to this file.
+function useLocalBlobUrl(id: string | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let objectUrl: string | null = null
+    let cancelled = false
+    if (id) {
+      void blobsDB.get(id).then((stored) => {
+        if (stored && !cancelled) {
+          objectUrl = URL.createObjectURL(stored.blob)
+          setUrl(objectUrl)
+        }
+      })
+    } else {
+      setUrl(null)
+    }
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [id])
+  return url
+}
+
+type Phase = 'prompt' | 'render' | null
 
 // Turn the dream into a short generated video: Claude writes the cinematic prompt,
 // fal.ai renders it, and the MP4 is saved into the dream entry.
@@ -12,16 +39,37 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
   const update = useDreams((s) => s.update)
   const settings = useSettings()
   const [prompt, setPrompt] = useState(dream.videoPrompt?.falPrompt ?? '')
+  const [phase, setPhase] = useState<Phase>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
+  const [elapsed, setElapsed] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
+  const timerRef = useRef<number | null>(null)
   const claude = hasClaudeKey()
   const fal = hasFalKey()
+  const videoBlobUrl = useLocalBlobUrl(dream.videoId)
+  const videoSrc = videoBlobUrl ?? dream.videoUrl ?? null
+
+  function startTimer() {
+    stopTimer()
+    const start = Date.now()
+    setElapsed(0)
+    timerRef.current = window.setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
+  }
+  function stopTimer() {
+    if (timerRef.current != null) {
+      window.clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+  }
+  useEffect(() => () => stopTimer(), [])
 
   async function writePrompt() {
     setError(null)
+    setPhase('prompt')
     setStatus('Directing the scene…')
+    startTimer()
     try {
       const vp = await generateVideoPrompt(dream)
       setPrompt(vp.falPrompt)
@@ -30,12 +78,15 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
       setError(e instanceof Error ? e.message : 'Prompt generation failed.')
     } finally {
       setStatus(null)
+      stopTimer()
     }
   }
 
   async function render() {
     if (!prompt.trim()) return
     setError(null)
+    setPhase('render')
+    startTimer()
     try {
       const { url } = await generateVideo(prompt.trim(), setStatus)
       setStatus('Saving the dream reel…')
@@ -52,7 +103,13 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
       setError(e instanceof Error ? e.message : 'Video generation failed.')
     } finally {
       setStatus(null)
+      stopTimer()
     }
+  }
+
+  function tryAgain() {
+    if (phase === 'prompt') void writePrompt()
+    else void render()
   }
 
   async function uploadVideo(file: File) {
@@ -68,11 +125,24 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
   }
 
   const vp = dream.videoPrompt
+  const busy = Boolean(status)
+  const activeModel = effectiveVideoModel(settings)
+  const activeModelName = VIDEO_MODELS.find((m) => m.id === activeModel)?.name
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <h3 className="font-display text-xl text-dusk-100">
+        The <em>film</em>
+      </h3>
+
+      {videoSrc && (
+        <div className="card overflow-hidden">
+          <video src={videoSrc} controls loop className="aspect-video w-full bg-night-950 object-contain" />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => void writePrompt()} disabled={!claude || Boolean(status)} className="btn-secondary">
+        <button onClick={() => void writePrompt()} disabled={!claude || busy} className="btn-secondary">
           {vp ? '↻ Rewrite cinematic prompt ✨' : '1 · Write cinematic prompt ✨'}
         </button>
         {!claude && <span className="text-xs text-dusk-400">needs an Anthropic key (Settings)</span>}
@@ -90,35 +160,59 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={settings.customVideoModel ? 'custom' : settings.videoModel}
-          onChange={(e) => {
-            if (e.target.value !== 'custom') {
-              settings.setCustomVideoModel('')
-              settings.setVideoModel(e.target.value)
-            }
-          }}
-          className="input max-w-64"
-          aria-label="Video model"
-        >
-          {VIDEO_MODELS.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-          {settings.customVideoModel && <option value="custom">{settings.customVideoModel} (custom)</option>}
-        </select>
-        <button onClick={() => void render()} disabled={!fal || !prompt.trim() || Boolean(status)} className="btn-primary">
-          2 · Generate dream video 🎬
-        </button>
-        {!fal && <span className="text-xs text-dusk-400">needs a fal.ai key (Settings)</span>}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={settings.customVideoModel ? 'custom' : settings.videoModel}
+            onChange={(e) => {
+              if (e.target.value !== 'custom') {
+                settings.setCustomVideoModel('')
+                settings.setVideoModel(e.target.value)
+              }
+            }}
+            className="input max-w-64"
+            aria-label="Video model"
+          >
+            {VIDEO_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+            {settings.customVideoModel && <option value="custom">{settings.customVideoModel} (custom)</option>}
+          </select>
+          <button onClick={() => void render()} disabled={!fal || !prompt.trim() || busy} className="btn-primary">
+            2 · Generate dream video 🎬
+          </button>
+          {!fal && <span className="text-xs text-dusk-400">needs a fal.ai key (Settings)</span>}
+        </div>
+        {settings.customVideoModel ? (
+          <p className="text-xs text-dusk-400">
+            Using custom override from Settings: <span className="text-dusk-300">{settings.customVideoModel}</span> — clear it there to use the picker above.
+          </p>
+        ) : (
+          activeModelName && <p className="text-xs text-dusk-400">Will render on <span className="text-dusk-300">{activeModelName}</span>.</p>
+        )}
       </div>
 
       {status && (
-        <p className="flex items-center gap-2 rounded-xl bg-night-700/60 p-3 text-sm text-aurora-300">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-aurora-400" /> {status}
+        <p className="card flex items-center justify-between gap-3 px-4 py-3 text-sm">
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-aurora-400" />
+            <span className="shimmer-text font-medium">{status}</span>
+          </span>
+          <span className="shrink-0 text-xs text-dusk-400 tabular-nums">{elapsed}s</span>
         </p>
       )}
-      {error && <p className="text-sm text-ember-300">{error}</p>}
+
+      {error && (
+        <div className="card border border-ember-400/30 bg-ember-400/5 p-4">
+          <p className="text-sm font-medium text-ember-300">{error}</p>
+          <p className="mt-2 text-xs text-dusk-400">
+            check your fal.ai key balance · try LTX Fast · paste a fresh model id from fal.ai/models in Settings
+          </p>
+          <button onClick={tryAgain} className="btn-secondary mt-3 text-xs">
+            ↻ Try again
+          </button>
+        </div>
+      )}
 
       <details className="rounded-xl bg-night-700/40 p-3 text-sm">
         <summary className="cursor-pointer text-dusk-300">Prefer another tool? Copy a tuned prompt or upload a video</summary>
