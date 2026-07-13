@@ -71,15 +71,17 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <header>
-        <h2 className="font-display text-3xl text-dusk-100">Settings</h2>
+      <header className="reveal">
+        <h2 className="font-display text-3xl text-dusk-100">
+          Settings <em>&</em> Config
+        </h2>
         <p className="mt-1 text-sm text-dusk-300">
           Everything lives in <em>your</em> browser — dreams in local storage on this device, API keys never sent anywhere
           except directly to Anthropic and fal.ai.
         </p>
       </header>
 
-      <section className="card space-y-4 p-5">
+      <section className="card space-y-4 p-5 reveal">
         <div>
           <h3 className="font-display text-lg text-dusk-100">🧠 Anthropic (Claude) — interpretation & interview</h3>
           <p className="mt-1 text-xs leading-relaxed text-dusk-400">
@@ -109,7 +111,7 @@ export default function Settings() {
         </div>
       </section>
 
-      <section className="card space-y-4 p-5">
+      <section className="card space-y-4 p-5 reveal">
         <div>
           <h3 className="font-display text-lg text-dusk-100">🎬 fal.ai — video generation & transcription</h3>
           <p className="mt-1 text-xs leading-relaxed text-dusk-400">

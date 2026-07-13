@@ -165,8 +165,8 @@ function ComparePanel({ ai }: { ai: boolean }) {
   }
 
   return (
-    <section className="card p-5">
-      <h3 className="font-display text-lg text-dusk-100">Compare two dreams ✨</h3>
+    <section className="card p-5 reveal">
+      <h3 className="font-display text-lg text-dusk-100">Compare two dreams <em>✨</em></h3>
       <p className="mt-1 text-xs text-dusk-400">Side-by-side reading: shared symbols, inverted themes, and what the pair says together.</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {[{ v: aId, set: setAId, ph: 'First dream…' }, { v: bId, set: setBId, ph: 'Second dream…' }].map((sel, i) => (
@@ -186,7 +186,7 @@ function ComparePanel({ ai }: { ai: boolean }) {
       {!ai && <p className="mt-2 text-xs text-dusk-400">Needs an Anthropic key (Settings).</p>}
       {error && <p className="mt-2 text-sm text-ember-300">{error}</p>}
       {text != null && (
-        <div className="mt-4 rounded-xl bg-night-700/40 p-4 text-sm">
+        <div className="font-prose mt-4 rounded-xl bg-night-700/40 p-4 text-sm">
           <Markdown text={text} />
           {busy && <span className="animate-pulse text-dusk-300">▋</span>}
         </div>
