@@ -13,7 +13,7 @@ DreamCatcher is a dream journal built for the first fragile minute after waking 
 - **🎬 Dream Studio** — Claude writes a cinematic prompt from your full dream record; fal.ai renders it into a short video saved right into the entry. Or copy Runway/Pika/ComfyUI-tuned prompts and generate elsewhere.
 - **▶️ Replay Center** — your dreams as an instant movie reel, played like shorts.
 - **✨ Insights** — recurring symbols, characters and emotions across your whole journal, mood trends over time, and AI compare/contrast between any two dreams.
-- **🛌 Sleep & Vitals** — log sleep duration, quality, stress, caffeine, alcohol, exercise, screens; DreamCatcher computes which factors actually correlate with your dream recall, vividness and mood.
+- **🛌 Sleep & Vitals** — import nights straight from Apple Health or Fitbit exports (or log by hand); DreamCatcher computes which factors actually correlate with your dream recall, vividness and mood.
 
 ## Privacy model
 
@@ -46,7 +46,7 @@ Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds and publ
 
 ## Roadmap
 
-- Wearable sleep data sync (Oura / Fitbit / Apple Health) to replace manual sleep entry
+- Live wearable sync via companion app (Apple Health / Fitbit file import ships today)
 - Optional encrypted cloud backup
 - Image generation for dream "posters" alongside video
 - Recurring-dream detection across entries (fuzzy matching)
