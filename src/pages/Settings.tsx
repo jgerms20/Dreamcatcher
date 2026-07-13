@@ -150,7 +150,7 @@ export default function Settings() {
         </div>
       </section>
 
-      <section className="card space-y-3 p-5">
+      <section className="card space-y-3 p-5 reveal">
         <h3 className="font-display text-lg text-dusk-100">💾 Your data</h3>
         <div className="flex flex-wrap gap-2">
           <button onClick={exportData} className="btn-secondary">Export journal (JSON)</button>
