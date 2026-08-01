@@ -26,7 +26,30 @@ The journal, dictation, question bank, symbol encyclopedia, sleep log and insigh
 | Key | Unlocks | Where to get it |
 |---|---|---|
 | **Anthropic** | recall scoring, adaptive interview, interpretation, comparisons, video prompts | [platform.claude.com](https://platform.claude.com/) → API keys |
-| **fal.ai** | video generation (Kling, Veo, LTX, Hunyuan, …) + audio-file transcription | [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys) |
+| **fal.ai** | video generation (LTX, Kling, MiniMax, Veo) + audio-file transcription | [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys) — **plus the proxy below** |
+
+### Video generation needs a proxy (about two minutes)
+
+fal.ai refuses API calls made straight from a browser: the request is blocked by
+CORS before it ever leaves the page, which is why pressing **Generate** could
+appear to do nothing at all. fal's own documentation says client-side apps must
+route through a server-side proxy.
+
+`worker/` contains that proxy — roughly 100 lines running free on Cloudflare:
+
+```bash
+npm install -g wrangler
+cd worker && wrangler login
+wrangler secret put FAL_KEY
+wrangler deploy
+```
+
+Paste the URL it prints into **Settings → Video connection**, then press **Test
+connection**. Your fal key then lives only in Cloudflare and never touches the
+browser. Full notes in [`worker/README.md`](worker/README.md).
+
+Without a proxy everything else still works, and Dream Studio still writes the
+full director's prompt for you to paste into Runway, Pika or ComfyUI by hand.
 
 Paste them into **Settings** in the app. Use the model pickers to trade cost vs. quality (Claude Opus 4.8 default; Haiku for cheap runs — LTX for fast video; Kling/Veo for cinematic).
 

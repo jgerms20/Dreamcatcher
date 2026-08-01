@@ -17,6 +17,11 @@ export default defineConfig({
         // very first paint for lazy routes; this chunking is what keeps
         // them cacheable and out of the main app chunk everywhere else.
         manualChunks(id) {
+          // Vite's dynamic-import preload helper is used by every lazy route;
+          // pin it to its own tiny chunk so rolldown's automatic grouping
+          // doesn't fuse it (and therefore its whole host chunk) into the
+          // critical path — that quietly defeated the anthropic/fal split.
+          if (id.includes('vite/preload-helper')) return 'app-shell'
           if (!id.includes('node_modules')) return undefined
           if (id.includes('@anthropic-ai/sdk')) return 'vendor-anthropic'
           if (id.includes('@fal-ai/client')) return 'vendor-fal'

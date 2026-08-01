@@ -4,7 +4,7 @@ import { useDreams } from '../store/dreams'
 import { blobsDB } from '../db'
 import { newId, lastNightISO } from '../types'
 import { useDictation, dictationSupported } from '../services/speech'
-import { transcribeAudio, hasFalKey } from '../services/fal'
+import { useSettings } from '../store/settings'
 import RecordButton from '../components/RecordButton'
 
 /** Append a spoken/transcribed segment to existing text without clobbering it or double-spacing. */
@@ -42,6 +42,11 @@ function pickPrompts(text: string, max = 4): string[] {
 
 export default function Capture() {
   const navigate = useNavigate()
+  // Read the settings directly rather than importing services/fal, which would
+  // drag the fal SDK into the landing chunk and slow the cold open.
+  const canTranscribe = useSettings(
+    (s) => Boolean((s.falProxyUrl ?? '').trim() || (s.falKey ?? '').trim()),
+  )
   const createDream = useDreams((s) => s.create)
   const [narrative, setNarrative] = useState('')
   const [dreamDate, setDreamDate] = useState(lastNightISO())
@@ -83,12 +88,13 @@ export default function Capture() {
   async function handleFile(file: File) {
     setError(null)
     setAudioBlob(file)
-    if (!hasFalKey()) {
+    if (!canTranscribe) {
       setError('Audio attached — add a fal.ai key in Settings to auto-transcribe it, or type what you remember below.')
       return
     }
     try {
       setBusy('Transcribing audio…')
+      const { transcribeAudio } = await import('../services/fal')
       const transcript = await transcribeAudio(file, setBusy)
       setNarrative((prev) => appendSpoken(prev, transcript))
     } catch (e) {

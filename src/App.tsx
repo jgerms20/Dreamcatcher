@@ -3,6 +3,8 @@ import type { ReactElement } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { useDreams } from './store/dreams'
 import { useSleep } from './store/sleep'
+import { isPreviewMode } from './store/privacy'
+import PrivacyLock from './components/PrivacyLock'
 import Capture from './pages/Capture'
 
 // Capture is the lead page — it stays a static import so the record button
@@ -142,12 +144,17 @@ export default function App() {
   const loadDreams = useDreams((s) => s.load)
   const loadSleep = useSleep((s) => s.load)
   const location = useLocation()
+  // "Preview as a new visitor" opens the app with ?preview=1 so the dreamer can
+  // see for themselves what a shared link looks like: nothing is read from disk.
+  const preview = isPreviewMode()
   useEffect(() => {
+    if (preview) return
     void loadDreams()
     void loadSleep()
-  }, [loadDreams, loadSleep])
+  }, [loadDreams, loadSleep, preview])
 
   return (
+    <PrivacyLock>
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col overscroll-y-contain px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:flex-row md:gap-10 md:pb-10">
       <aside className="md:w-52 md:shrink-0 md:pt-10">
         <NavLink to="/" className="block py-6 md:py-0">
@@ -204,6 +211,13 @@ export default function App() {
           </Routes>
         </Suspense>
       </main>
+
+      {preview && (
+        <p className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-30 mx-auto w-fit rounded-full border border-dusk-400/40 bg-night-900/95 px-4 py-1.5 text-xs text-dusk-300 backdrop-blur md:bottom-4">
+          Preview — this is what someone you share the link with sees
+        </p>
+      )}
     </div>
+    </PrivacyLock>
   )
 }
