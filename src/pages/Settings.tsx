@@ -1,10 +1,26 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSettings, CLAUDE_MODELS, VIDEO_MODELS } from '../store/settings'
 import { useDreams } from '../store/dreams'
 import { useSleep } from '../store/sleep'
 import { dreamsDB, sleepDB, wipeAll } from '../db'
 import { testClaudeKey } from '../services/claude'
+import { useLockStore, setPasscode, clearPasscode, isPreviewMode } from '../store/privacy'
 import type { Dream, SleepLog } from '../types'
+
+const PUBLIC_URL = 'https://jgerms20.github.io/Dreamcatcher/'
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function previewVisitorUrl(): string {
+  const url = new URL(window.location.href)
+  url.search = 'preview=1'
+  url.hash = '#/'
+  return url.toString()
+}
 
 export default function Settings() {
   const s = useSettings()
@@ -13,6 +29,53 @@ export default function Settings() {
   const [claudeStatus, setClaudeStatus] = useState<string | null>(null)
   const [importStatus, setImportStatus] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const lockEnabled = useLockStore((st) => st.lockEnabled)
+  const hasPasscode = useLockStore((st) => !!st.verifier)
+  const setLockEnabled = useLockStore((st) => st.setLockEnabled)
+  const lockNow = useLockStore((st) => st.lock)
+
+  const [storageInfo, setStorageInfo] = useState<{ usedBytes: number; quotaBytes: number } | null>(null)
+  const [shareCopied, setShareCopied] = useState(false)
+  const [passMode, setPassMode] = useState(false)
+  const [passInput, setPassInput] = useState('')
+  const [passConfirm, setPassConfirm] = useState('')
+  const [passError, setPassError] = useState<string | null>(null)
+  const [passSaved, setPassSaved] = useState(false)
+
+  useEffect(() => {
+    if (navigator.storage?.estimate) {
+      void navigator.storage.estimate().then((e) => setStorageInfo({ usedBytes: e.usage ?? 0, quotaBytes: e.quota ?? 0 }))
+    }
+  }, [])
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(PUBLIC_URL)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      window.prompt('Copy this link:', PUBLIC_URL)
+    }
+  }
+
+  async function savePasscode() {
+    setPassError(null)
+    if (passInput.length < 4 || passInput.length > 6 || !/^\d+$/.test(passInput)) {
+      setPassError('Use 4–6 digits.')
+      return
+    }
+    if (passInput !== passConfirm) {
+      setPassError("Codes don't match.")
+      return
+    }
+    await setPasscode(passInput)
+    setPassInput('')
+    setPassConfirm('')
+    setPassMode(false)
+    setPassSaved(true)
+    setTimeout(() => setPassSaved(false), 1800)
+  }
 
   async function testClaude() {
     setClaudeStatus('Testing…')
