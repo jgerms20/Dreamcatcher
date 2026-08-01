@@ -449,11 +449,13 @@ export default function Sleep() {
       {logs.length > 0 && (
         <section className="reveal card p-5">
           <h3 className="font-display text-lg text-dusk-100">Logged nights</h3>
+          <p className="mt-1 text-xs text-dusk-400">Click a night to edit it — bed time, wake time, quality, stress, and flags all stay editable.</p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="text-xs uppercase tracking-wider text-dusk-400">
                   <th className="py-1.5 pr-4">Night</th>
+                  <th className="py-1.5 pr-4">Bed → Wake</th>
                   <th className="py-1.5 pr-4">Hours</th>
                   <th className="py-1.5 pr-4">Quality</th>
                   <th className="py-1.5 pr-4">Stress</th>
@@ -463,8 +465,17 @@ export default function Sleep() {
               </thead>
               <tbody className="text-dusk-200">
                 {logs.slice(0, 30).map((l) => (
-                  <tr key={l.id} className="border-t border-night-600/50">
+                  <tr
+                    key={l.id}
+                    onClick={() => editLog(l)}
+                    className={`cursor-pointer border-t transition-colors hover:bg-night-700/40 ${
+                      editingId === l.id ? 'border-dusk-400/40 bg-dusk-400/10' : 'border-night-600/50'
+                    }`}
+                  >
                     <td className="py-1.5 pr-4 tabular-nums">{l.date}</td>
+                    <td className="py-1.5 pr-4 tabular-nums text-dusk-300">
+                      {l.bedTime && l.wakeTime ? `${l.bedTime} → ${l.wakeTime}` : '—'}
+                    </td>
                     <td className="py-1.5 pr-4 tabular-nums">{l.durationH}h</td>
                     <td className="py-1.5 pr-4 tabular-nums">{l.quality}/5</td>
                     <td className="py-1.5 pr-4 tabular-nums">{l.stress}/5</td>
@@ -478,7 +489,13 @@ export default function Sleep() {
                       </span>
                     </td>
                     <td className="py-1.5 text-right">
-                      <button onClick={() => void remove(l.id)} className="cursor-pointer text-xs text-dusk-400 hover:text-ember-300" aria-label={`Delete log for ${l.date}`}>✕</button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); void deleteLog(l.id) }}
+                        className="cursor-pointer text-xs text-dusk-400 hover:text-ember-300"
+                        aria-label={`Delete log for ${l.date}`}
+                      >
+                        ✕
+                      </button>
                     </td>
                   </tr>
                 ))}

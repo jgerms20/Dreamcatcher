@@ -1,17 +1,26 @@
 {
-  "name": "DreamCatcher",
+  "name": "DreamCatcher — a night atlas",
   "short_name": "DreamCatcher",
   "description": "Record, expand, interpret and visualize your dreams.",
   "start_url": ".",
+  "scope": ".",
   "display": "standalone",
-  "background_color": "#0b0a1a",
-  "theme_color": "#0b0a1a",
+  "orientation": "portrait",
+  "background_color": "#0a0c14",
+  "theme_color": "#0a0c14",
+  "categories": ["lifestyle", "health", "journal"],
   "icons": [
     {
       "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }
