@@ -5,6 +5,7 @@ import { useSleep } from '../store/sleep'
 import { dreamsDB, sleepDB, wipeAll } from '../db'
 import { testClaudeKey } from '../services/claude'
 import { useLockStore, setPasscode, clearPasscode, isPreviewMode } from '../store/privacy'
+import VideoConnection from '../components/VideoConnection'
 import type { Dream, SleepLog } from '../types'
 
 const PUBLIC_URL = 'https://jgerms20.github.io/Dreamcatcher/'
@@ -179,7 +180,9 @@ export default function Settings() {
           <h3 className="font-display text-lg text-dusk-100">🎬 fal.ai — video generation & transcription</h3>
           <p className="mt-1 text-xs leading-relaxed text-dusk-400">
             One key unlocks many video models plus Whisper transcription for imported audio.
-            Get a key at <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer" className="text-aurora-300 underline">fal.ai/dashboard/keys</a>.
+            Get a key at <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer" className="text-aurora-300 underline">fal.ai/dashboard/keys</a>.{' '}
+            <strong className="text-ember-300">A key alone will not work from a web page</strong> — set up the
+            proxy below, which also means you can leave this field empty.
           </p>
         </div>
         <input
@@ -212,6 +215,10 @@ export default function Settings() {
           </p>
         </div>
       </section>
+
+      <div className="reveal">
+        <VideoConnection />
+      </div>
 
       <section className="card card-glow space-y-4 p-5 reveal">
         <div>
