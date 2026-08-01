@@ -20,7 +20,7 @@ export default defineConfig({
           if (!id.includes('node_modules')) return undefined
           if (id.includes('@anthropic-ai/sdk')) return 'vendor-anthropic'
           if (id.includes('@fal-ai/client')) return 'vendor-fal'
-          if (id.includes('react-router-dom')) return 'vendor-router'
+          if (id.includes('react-router')) return 'vendor-router'
           if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) {
             return 'vendor-react'
           }
