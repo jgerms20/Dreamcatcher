@@ -213,6 +213,146 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="card card-glow space-y-4 p-5 reveal">
+        <div>
+          <h3 className="font-display text-lg text-dusk-100">🔒 Privacy & sharing</h3>
+          <p className="mt-2 text-sm leading-relaxed text-dusk-200">
+            DreamCatcher has no server and no accounts — everything you write is saved directly in{' '}
+            <span className="text-dusk-100 font-semibold">this browser&rsquo;s</span> storage, on this device only.
+            If you send someone the link, their browser opens its own empty storage — your dreams never travel with
+            the URL, because they never leave this machine to begin with.
+          </p>
+          {isPreviewMode() && (
+            <p className="mt-2 rounded-lg border border-aurora-300/30 bg-aurora-300/10 px-3 py-2 text-xs text-aurora-300">
+              This tab was opened in preview mode — it&rsquo;s what a new visitor sees.
+            </p>
+          )}
+          <dl className="mt-3 grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-xl border border-night-600/50 bg-night-700/30 p-3">
+              <dt className="label">Dreams stored</dt>
+              <dd className="font-display text-xl text-dusk-100">{dreams.length}</dd>
+            </div>
+            <div className="rounded-xl border border-night-600/50 bg-night-700/30 p-3">
+              <dt className="label">Storage used</dt>
+              <dd className="font-display text-xl text-dusk-100">{storageInfo ? formatBytes(storageInfo.usedBytes) : '—'}</dd>
+            </div>
+            <div className="rounded-xl border border-night-600/50 bg-night-700/30 p-3">
+              <dt className="label">Lives in</dt>
+              <dd className="font-display text-base text-dusk-100 leading-tight">this browser</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => void copyShareLink()} className="btn-secondary">
+            {shareCopied ? '✓ Copied' : '🔗 Copy share link'}
+          </button>
+          <button onClick={() => window.open(previewVisitorUrl(), '_blank', 'noopener')} className="btn-ghost">
+            👀 Preview as a new visitor
+          </button>
+        </div>
+        <p className="text-xs text-dusk-400">
+          Sharing <span className="text-dusk-300">{PUBLIC_URL}</span> opens blank for anyone you send it to — they get
+          their own empty journal, not yours.
+        </p>
+
+        <div className="rule" />
+
+        <p className="text-xs leading-relaxed text-ember-300/90">
+          ⚠️ The one sensitive thing here: your Anthropic and fal.ai API keys, saved above, sit in this browser&rsquo;s
+          local storage in plain form. Anyone with physical access to this device — an unlocked phone, a borrowed
+          laptop — could open dev tools and read them. That&rsquo;s what the passcode lock below is for.
+        </p>
+      </section>
+
+      <section className="card space-y-4 p-5 reveal">
+        <div>
+          <h3 className="font-display text-lg text-dusk-100">🕯️ Passcode lock</h3>
+          <p className="mt-1 text-xs leading-relaxed text-dusk-400">
+            A short digit code that seals the app until it&rsquo;s typed in again — handy if someone else might pick
+            up this device. It deters casual snooping only; it is{' '}
+            <span className="text-dusk-300">not encryption</span>, and won&rsquo;t stop someone who opens browser dev
+            tools directly.
+          </p>
+        </div>
+
+        {hasPasscode && !passMode && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`chip ${lockEnabled ? 'border-aurora-300/40 text-aurora-300' : ''}`}>
+              {lockEnabled ? '🔒 Lock enabled' : '🔓 Lock disabled'}
+            </span>
+            <button onClick={() => setLockEnabled(!lockEnabled)} className="btn-secondary">
+              {lockEnabled ? 'Disable' : 'Enable'}
+            </button>
+            {lockEnabled && (
+              <button onClick={() => lockNow()} className="btn-ghost">
+                Lock now
+              </button>
+            )}
+            <button onClick={() => { setPassMode(true); setPassError(null) }} className="btn-ghost">
+              Change passcode
+            </button>
+            <button
+              onClick={() => {
+                if (confirm('Remove the passcode? The app will no longer lock.')) clearPasscode()
+              }}
+              className="btn-ghost text-ember-300"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {(!hasPasscode || passMode) && (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="pass-new">{hasPasscode ? 'New passcode' : 'Passcode'} (4–6 digits)</label>
+                <input
+                  id="pass-new"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="\d*"
+                  maxLength={6}
+                  value={passInput}
+                  onChange={(e) => setPassInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="input"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="pass-confirm">Confirm</label>
+                <input
+                  id="pass-confirm"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="\d*"
+                  maxLength={6}
+                  value={passConfirm}
+                  onChange={(e) => setPassConfirm(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="input"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            {passError && <p className="text-sm text-ember-300">{passError}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => void savePasscode()} className="btn-primary">
+                {passSaved ? '✓ Saved' : 'Save passcode'}
+              </button>
+              {hasPasscode && (
+                <button
+                  onClick={() => { setPassMode(false); setPassInput(''); setPassConfirm(''); setPassError(null) }}
+                  className="btn-ghost"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
       <section className="card space-y-3 p-5 reveal">
         <h3 className="font-display text-lg text-dusk-100">💾 Your data</h3>
         <div className="flex flex-wrap gap-2">

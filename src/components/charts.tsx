@@ -20,6 +20,49 @@ export function pearson(xs: number[], ys: number[]): number | null {
   return num / Math.sqrt(dx2 * dy2)
 }
 
+// Ordinary least-squares fit, for trend lines / trajectory reads. Returns null
+// when there isn't enough spread to fit (n < 2 or all xs identical).
+export function linreg(xs: number[], ys: number[]): { slope: number; intercept: number } | null {
+  const n = xs.length
+  if (n < 2) return null
+  const mx = xs.reduce((a, b) => a + b, 0) / n
+  const my = ys.reduce((a, b) => a + b, 0) / n
+  let num = 0
+  let den = 0
+  for (let i = 0; i < n; i++) {
+    num += (xs[i] - mx) * (ys[i] - my)
+    den += (xs[i] - mx) ** 2
+  }
+  if (den === 0) return null
+  const slope = num / den
+  return { slope, intercept: my - slope * mx }
+}
+
+// Lerp two hex colors in sRGB — good enough for a small diverging ramp of a
+// handful of discrete steps (mood -2..2), not for a long continuous scale.
+function lerpColor(a: string, b: string, t: number): string {
+  const pa = hexToRgb(a)
+  const pb = hexToRgb(b)
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t))
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`
+}
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+}
+
+// Two validated poles (warm ember = low, cool viz-violet = high) meeting at a
+// neutral midpoint — the standard diverging construction, interpolated so any
+// value in [-domain, domain] gets a consistent step, not just the five whole numbers.
+const MOOD_NEG = '#c96342'
+const MOOD_NEUTRAL = '#4a4f74'
+const MOOD_POS = '#8b7fd4'
+
+export function moodColor(value: number, domain = 2): string {
+  const t = Math.max(-1, Math.min(1, value / domain))
+  return t < 0 ? lerpColor(MOOD_NEUTRAL, MOOD_NEG, -t) : lerpColor(MOOD_NEUTRAL, MOOD_POS, t)
+}
+
 interface ScatterProps {
   points: { x: number; y: number; label: string }[]
   xLabel: string

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useSleep } from '../store/sleep'
 import { useDreams } from '../store/dreams'
@@ -13,10 +13,8 @@ import {
   type HealthImportSource,
 } from '../services/healthImport'
 
-export default function Sleep() {
-  const { logs, upsert, remove } = useSleep()
-  const dreams = useDreams((s) => s.dreams)
-  const [form, setForm] = useState<Omit<SleepLog, 'id'>>({
+function defaultForm(): Omit<SleepLog, 'id'> {
+  return {
     date: lastNightISO(),
     durationH: 7.5,
     quality: 3,
@@ -25,9 +23,59 @@ export default function Sleep() {
     exercise: false,
     stress: 2,
     screenLate: false,
-  })
+  }
+}
+
+/** Hours between bedTime and wakeTime, handling a crossing past midnight
+ * (wake clock-time earlier than bed clock-time means the night rolled over). */
+function computeDurationH(bedTime?: string, wakeTime?: string): number | null {
+  if (!bedTime || !wakeTime) return null
+  const [bh, bm] = bedTime.split(':').map(Number)
+  const [wh, wm] = wakeTime.split(':').map(Number)
+  if ([bh, bm, wh, wm].some((n) => Number.isNaN(n))) return null
+  let minutes = (wh * 60 + wm) - (bh * 60 + bm)
+  if (minutes <= 0) minutes += 24 * 60 // crossed midnight (or a full 24h round-trip)
+  return Math.round((minutes / 60) * 100) / 100
+}
+
+export default function Sleep() {
+  const { logs, upsert, remove } = useSleep()
+  const dreams = useDreams((s) => s.dreams)
+  const [form, setForm] = useState<Omit<SleepLog, 'id'>>(defaultForm())
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [manualOpen, setManualOpen] = useState(false)
+  const formSectionRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (editingId) formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [editingId])
+
+  function updateBedWake(patch: Partial<Pick<SleepLog, 'bedTime' | 'wakeTime'>>) {
+    setForm((f) => {
+      const next = { ...f, ...patch }
+      const computed = computeDurationH(next.bedTime, next.wakeTime)
+      return computed != null ? { ...next, durationH: computed } : next
+    })
+  }
+
+  function editLog(l: SleepLog) {
+    const { id, ...rest } = l
+    setForm(rest)
+    setEditingId(id)
+    setManualOpen(true)
+    setSaved(false)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setForm(defaultForm())
+  }
+
+  async function deleteLog(id: string) {
+    await remove(id)
+    if (editingId === id) cancelEdit()
+  }
 
   // Apple Health import state
   const [appleBusy, setAppleBusy] = useState(false)
@@ -97,8 +145,10 @@ export default function Sleep() {
   const top = correlations[0]
 
   async function save() {
-    await upsert(form)
+    await upsert(editingId ? { ...form, id: editingId } : form)
     setSaved(true)
+    setEditingId(null)
+    setForm(defaultForm())
     setTimeout(() => setSaved(false), 1500)
   }
 
@@ -254,14 +304,16 @@ export default function Sleep() {
         </p>
       </section>
 
-      <section className="reveal card p-5">
+      <section ref={formSectionRef} className="reveal card p-5">
         <button
           type="button"
           onClick={() => setManualOpen((v) => !v)}
           className="flex w-full cursor-pointer items-center justify-between text-left"
           aria-expanded={manualOpen}
         >
-          <span className="font-display text-base text-dusk-100">Log a night by hand</span>
+          <span className="font-display text-base text-dusk-100">
+            {editingId ? `Editing the night of ${form.date}` : 'Log a night by hand'}
+          </span>
           <span className="text-sm text-dusk-400">{manualOpen ? '− close' : '+ expand'}</span>
         </button>
         {manualOpen && (
@@ -273,8 +325,33 @@ export default function Sleep() {
                 <input id="sl-date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="input" />
               </div>
               <div>
+                <label className="label" htmlFor="sl-bed">Bed time</label>
+                <input
+                  id="sl-bed"
+                  type="time"
+                  value={form.bedTime ?? ''}
+                  onChange={(e) => updateBedWake({ bedTime: e.target.value || undefined })}
+                  className="input"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="sl-wake">Wake time</label>
+                <input
+                  id="sl-wake"
+                  type="time"
+                  value={form.wakeTime ?? ''}
+                  onChange={(e) => updateBedWake({ wakeTime: e.target.value || undefined })}
+                  className="input"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+              <div>
                 <label className="label" htmlFor="sl-dur">Hours slept: {form.durationH}</label>
                 <input id="sl-dur" type="range" min={3} max={12} step={0.5} value={form.durationH} onChange={(e) => setForm({ ...form, durationH: Number(e.target.value) })} className="w-full accent-dusk-400" />
+                {form.bedTime && form.wakeTime && (
+                  <p className="mt-1 text-xs text-dusk-400">Auto-filled from bed/wake times — drag to override.</p>
+                )}
               </div>
               <div>
                 <label className="label" htmlFor="sl-q">Sleep quality: {form.quality}/5</label>
@@ -284,7 +361,7 @@ export default function Sleep() {
                 <label className="label" htmlFor="sl-stress">Stress yesterday: {form.stress}/5</label>
                 <input id="sl-stress" type="range" min={1} max={5} value={form.stress} onChange={(e) => setForm({ ...form, stress: Number(e.target.value) })} className="w-full accent-dusk-400" />
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+              <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-3">
                 {([
                   ['caffeine', '☕ Caffeine after noon'],
                   ['alcohol', '🍷 Alcohol'],
@@ -306,7 +383,16 @@ export default function Sleep() {
                 })}
               </div>
             </div>
-            <button onClick={() => void save()} className="btn-primary mt-4">{saved ? '✓ Saved' : 'Save night'}</button>
+            <div className="mt-4 flex items-center gap-2">
+              <button onClick={() => void save()} className="btn-primary">
+                {saved ? '✓ Saved' : editingId ? 'Update night' : 'Save night'}
+              </button>
+              {editingId && (
+                <button type="button" onClick={cancelEdit} className="btn-ghost">
+                  Cancel edit
+                </button>
+              )}
+            </div>
           </div>
         )}
       </section>
