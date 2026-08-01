@@ -1,0 +1,12 @@
+name = "dreamcatcher-fal-proxy"
+main = "index.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+# Comma-separated list of sites allowed to use this proxy.
+# Add your own domain here if you move DreamCatcher off GitHub Pages.
+ALLOWED_ORIGINS = "https://jgerms20.github.io,http://localhost:5173,http://localhost:4173"
+
+# Secrets are NOT set here — they are encrypted at rest. Set them with:
+#   wrangler secret put FAL_KEY     (required — your fal.ai key)
+#   wrangler secret put APP_TOKEN   (optional — a password of your choosing)

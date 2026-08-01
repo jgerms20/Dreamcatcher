@@ -34,11 +34,21 @@ export function resolveVideoModel(id: string): string {
 interface SettingsState {
   anthropicKey: string
   falKey: string
+  /**
+   * URL of the fal proxy (see worker/). fal.ai refuses direct browser calls, so
+   * this is the supported path for video + transcription — and it keeps the fal
+   * key server-side instead of in localStorage.
+   */
+  falProxyUrl: string
+  /** Optional shared secret matching the Worker's APP_TOKEN. */
+  falAppToken: string
   claudeModel: string
   videoModel: string
   customVideoModel: string
   setAnthropicKey: (k: string) => void
   setFalKey: (k: string) => void
+  setFalProxyUrl: (u: string) => void
+  setFalAppToken: (t: string) => void
   setClaudeModel: (m: string) => void
   setVideoModel: (m: string) => void
   setCustomVideoModel: (m: string) => void
@@ -49,11 +59,15 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       anthropicKey: '',
       falKey: '',
+      falProxyUrl: '',
+      falAppToken: '',
       claudeModel: 'claude-opus-4-8',
       videoModel: DEFAULT_VIDEO_MODEL,
       customVideoModel: '',
       setAnthropicKey: (anthropicKey) => set({ anthropicKey }),
       setFalKey: (falKey) => set({ falKey }),
+      setFalProxyUrl: (falProxyUrl) => set({ falProxyUrl }),
+      setFalAppToken: (falAppToken) => set({ falAppToken }),
       setClaudeModel: (claudeModel) => set({ claudeModel }),
       setVideoModel: (videoModel) => set({ videoModel }),
       setCustomVideoModel: (customVideoModel) => set({ customVideoModel }),

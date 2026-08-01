@@ -3,8 +3,9 @@ import { useDreams } from '../store/dreams'
 import { blobsDB } from '../db'
 import { newId, type Dream } from '../types'
 import { generateVideoPrompt, hasClaudeKey } from '../services/claude'
-import { generateVideo, fetchVideoBlob, hasFalKey } from '../services/fal'
+import { generateVideo, fetchVideoBlob, hasFalKey, videoBackend } from '../services/fal'
 import { useSettings, VIDEO_MODELS, effectiveVideoModel } from '../store/settings'
+import VideoConnection from './VideoConnection'
 
 // No shared blob-url hook lives in src/components (DreamDetail.tsx keeps a local, unexported
 // copy in src/pages), so this is a small local re-implementation kept private to this file.
@@ -205,13 +206,21 @@ export default function DreamStudio({ dream }: { dream: Dream }) {
       {error && (
         <div className="card border border-ember-400/30 bg-ember-400/5 p-4">
           <p className="text-sm font-medium text-ember-300">{error}</p>
-          <p className="mt-2 text-xs text-dusk-400">
-            check your fal.ai key balance · try LTX Fast · paste a fresh model id from fal.ai/models in Settings
-          </p>
+          {!/blocked by the browser|not set up|reach your proxy/i.test(error) && (
+            <p className="mt-2 text-xs text-dusk-400">
+              check your fal.ai credit · try LTX 2.3 Fast · paste a current model id from fal.ai/models in Settings
+            </p>
+          )}
           <button onClick={tryAgain} className="btn-secondary mt-3 text-xs">
             ↻ Try again
           </button>
         </div>
+      )}
+
+      {/* fal blocks direct browser calls, so when video can't run the fix belongs
+          right here rather than buried in Settings. */}
+      {(videoBackend() !== 'proxy' || /blocked by the browser|not set up|reach your proxy/i.test(error ?? '')) && (
+        <VideoConnection />
       )}
 
       <details className="rounded-xl bg-night-700/40 p-3 text-sm">
