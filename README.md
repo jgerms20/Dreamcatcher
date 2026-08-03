@@ -6,7 +6,7 @@ Record, expand, interpret, and **watch** your dreams.
 
 DreamCatcher is a dream journal built for the first fragile minute after waking — and everything that comes after:
 
-- **🎙️ Catch it fast** — dictate the dream live (speech-to-text in the browser), import a voice memo, or type. The audio is kept alongside the transcript.
+- **🎙️ Catch it fast** — dictate the dream live (Web Speech in the browser, native `SFSpeechRecognizer` in the iOS app), import a voice memo, or type. In the browser the audio is kept alongside the transcript.
 - **🔍 Deepen the recall** — an adaptive interview asks the single best next question about *your* dream ("You mentioned water — was it moving? What color was the light?"), and an 8-dimension recall rubric scores how completely you remembered it (radar chart + 0–100 score).
 - **🔮 Interpret it** — four lenses side by side: Jungian, Freudian, Cognitive/Neuroscience, and Cultural/Spiritual — each explains *where its ideas come from*, and links symbols into the built-in encyclopedia.
 - **📖 Symbol encyclopedia** — the mainstays of dreaming (teeth falling out, waves, flying, being chased…) with meanings across traditions. Works standalone, no dream required.
@@ -66,6 +66,25 @@ Stack: React 19 + TypeScript + Vite + Tailwind 4 · zustand + IndexedDB (`idb`) 
 ### Deployment
 
 Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds and publishes to GitHub Pages. If the first deploy fails with a Pages error, enable it once: **repo Settings → Pages → Source: "GitHub Actions"**, then re-run the workflow.
+
+## 📱 iOS app (TestFlight)
+
+DreamCatcher also ships as a real iOS app. [Capacitor](https://capacitorjs.com)
+wraps the built web bundle in a native shell (`ios/`), and the **iOS TestFlight**
+workflow archives, signs and uploads it from a hosted macOS runner — **no Mac
+required**. You do need an Apple Developer Program membership ($99/year).
+
+```bash
+npm run build:ios   # web bundle (base '/') + cap sync
+npm run ios:open    # open in Xcode, if you have a Mac
+npm run ios:art     # regenerate the app icon and launch image
+```
+
+The native build is not just the website in a frame: iOS WKWebView has no Web
+Speech API, so the record button drives Apple's own `SFSpeechRecognizer` instead.
+
+**Full setup — Apple enrollment, bundle ID, API key, and the four GitHub
+secrets: [`docs/TESTFLIGHT.md`](docs/TESTFLIGHT.md).**
 
 ## Roadmap
 
