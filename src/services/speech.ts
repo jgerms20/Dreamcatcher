@@ -1,4 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { isNativeApp } from './platform'
+
+/**
+ * Dictation has two completely different engines behind one hook.
+ *
+ * In a browser it's the Web Speech API. Inside the packaged iOS app it can't
+ * be: WKWebView does not expose `SpeechRecognition` or `webkitSpeechRecognition`
+ * at all — that API exists in Safari the browser, not in the webview Capacitor
+ * embeds. A native build that kept the web path would show a permanently
+ * disabled record button, which is the whole point of the app. So on native we
+ * bridge to SFSpeechRecognizer through @capacitor-community/speech-recognition.
+ *
+ * Both engines feed the same contract: interim words stream into `interimText`
+ * for ghost-text rendering, and every committed chunk is handed to
+ * `onFinalSegment` exactly once. The consumer owns the narrative string; this
+ * hook never buffers or rewrites it.
+ */
 
 // Minimal Web Speech API typings (not in lib.dom for all TS versions)
 interface SpeechRecognitionResultLike {
@@ -25,8 +42,22 @@ function getRecognitionCtor(): (new () => SpeechRecognitionLike) | undefined {
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition) as (new () => SpeechRecognitionLike) | undefined
 }
 
+/**
+ * Can this build dictate at all?
+ *
+ * Called during render, so it stays synchronous. On native we answer
+ * optimistically — the real capability and permission check needs an async
+ * round trip to the native layer, and it runs inside start(), which reports
+ * anything that actually fails through `error`.
+ */
 export function dictationSupported(): boolean {
+  if (isNativeApp()) return true
   return Boolean(getRecognitionCtor()) && Boolean(navigator.mediaDevices?.getUserMedia)
+}
+
+/** True when a dictation session also retains the raw audio for re-transcription. */
+export function dictationKeepsAudio(): boolean {
+  return !isNativeApp()
 }
 
 export interface DictationState {
@@ -48,6 +79,8 @@ export interface UseDictationOptions {
   onFinalSegment?: (segment: string) => void
 }
 
+type NativePlugin = typeof import('@capacitor-community/speech-recognition')['SpeechRecognition']
+
 export function useDictation(options: UseDictationOptions = {}) {
   const [state, setState] = useState<DictationState>({
     recording: false,
@@ -62,8 +95,24 @@ export function useDictation(options: UseDictationOptions = {}) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const keepAliveRef = useRef(false)
   const interimRef = useRef('')
+  const nativeRef = useRef<NativePlugin | null>(null)
   const onFinalSegmentRef = useRef(options.onFinalSegment)
   onFinalSegmentRef.current = options.onFinalSegment
+
+  /** Hand a finished chunk to the consumer exactly once, and clear the interim buffer. */
+  const commitInterim = useCallback(() => {
+    const clean = interimRef.current.replace(/\s+/g, ' ').trim()
+    interimRef.current = ''
+    if (clean) onFinalSegmentRef.current?.(clean)
+  }, [])
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    const startedAt = Date.now()
+    timerRef.current = setInterval(() => {
+      setState((s) => ({ ...s, elapsed: Math.floor((Date.now() - startedAt) / 1000) }))
+    }, 1000)
+  }, [])
 
   const cleanup = useCallback(() => {
     keepAliveRef.current = false
@@ -73,11 +122,107 @@ export function useDictation(options: UseDictationOptions = {}) {
     timerRef.current = null
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
+    if (nativeRef.current) {
+      void nativeRef.current.stop().catch(() => {})
+      void nativeRef.current.removeAllListeners().catch(() => {})
+      nativeRef.current = null
+    }
   }, [])
 
   useEffect(() => cleanup, [cleanup])
 
-  const start = useCallback(async () => {
+  // ---------------------------------------------------------------- native --
+
+  const startNative = useCallback(async () => {
+    let plugin: NativePlugin
+    try {
+      ;({ SpeechRecognition: plugin } = await import('@capacitor-community/speech-recognition'))
+    } catch {
+      setState((s) => ({ ...s, error: 'The speech engine failed to load. Type your dream below instead.' }))
+      return
+    }
+
+    try {
+      const { available } = await plugin.available()
+      if (!available) {
+        setState((s) => ({ ...s, error: 'Speech recognition is unavailable on this device. Type your dream below instead.' }))
+        return
+      }
+
+      let status = (await plugin.checkPermissions()).speechRecognition
+      if (status !== 'granted') status = (await plugin.requestPermissions()).speechRecognition
+      if (status !== 'granted') {
+        setState((s) => ({
+          ...s,
+          error: 'Microphone and speech access are off. Turn them on in Settings › DreamCatcher, or type your dream below.',
+        }))
+        return
+      }
+
+      await plugin.removeAllListeners()
+      nativeRef.current = plugin
+      interimRef.current = ''
+
+      // iOS reports the whole utterance so far on every partial, not a delta —
+      // so this is the current session's text, not something to append to.
+      await plugin.addListener('partialResults', (data: { matches?: string[] }) => {
+        const text = data.matches?.[0] ?? ''
+        interimRef.current = text
+        setState((s) => ({ ...s, interimText: text }))
+      })
+
+      // SFSpeechRecognizer ends a session on its own after a silence gap or its
+      // ~1 minute ceiling. Commit what it heard and immediately open another one
+      // so a long, rambling dream is never truncated mid-sentence.
+      await plugin.addListener('listeningState', (data: { status?: string }) => {
+        if (data.status !== 'stopped' || !keepAliveRef.current) return
+        commitInterim()
+        setState((s) => ({ ...s, interimText: '' }))
+        void plugin
+          .start({ language: navigator.language || 'en-US', partialResults: true, popup: false })
+          .catch(() => {})
+      })
+
+      keepAliveRef.current = true
+      startTimer()
+      setState({ recording: true, interimText: '', error: null, elapsed: 0 })
+
+      // Not awaited: with partialResults the transcript arrives through the
+      // listeners above, and on some versions this promise stays pending for
+      // the life of the session.
+      void plugin
+        .start({ language: navigator.language || 'en-US', partialResults: true, popup: false })
+        .catch(() => {})
+    } catch {
+      setState((s) => ({ ...s, error: 'Could not start dictation. Type your dream below instead.' }))
+      cleanup()
+    }
+  }, [cleanup, commitInterim, startTimer])
+
+  const stopNative = useCallback(async (): Promise<{ audio: Blob | null }> => {
+    keepAliveRef.current = false
+    const plugin = nativeRef.current
+    try {
+      await plugin?.stop()
+    } catch {
+      // Already stopped — the transcript we have is still good.
+    }
+    // Let a trailing partialResults callback land before we treat the buffer as final.
+    await new Promise((resolve) => setTimeout(resolve, 120))
+    commitInterim()
+    await plugin?.removeAllListeners().catch(() => {})
+    nativeRef.current = null
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+    setState((s) => ({ ...s, recording: false, interimText: '' }))
+    // The native recognizer owns the microphone for the duration of a session,
+    // so there is no parallel MediaRecorder capture to hand back here.
+    return { audio: null }
+  }, [commitInterim])
+
+  // ------------------------------------------------------------------- web --
+
+  const startWeb = useCallback(async () => {
     const Ctor = getRecognitionCtor()
     if (!Ctor) {
       setState((s) => ({ ...s, error: 'Speech recognition is not supported in this browser. Chrome and Edge work best — or type your dream instead.' }))
@@ -127,17 +272,14 @@ export function useDictation(options: UseDictationOptions = {}) {
       recognitionRef.current = rec
       interimRef.current = ''
 
-      const startedAt = Date.now()
-      timerRef.current = setInterval(() => {
-        setState((s) => ({ ...s, elapsed: Math.floor((Date.now() - startedAt) / 1000) }))
-      }, 1000)
+      startTimer()
       setState({ recording: true, interimText: '', error: null, elapsed: 0 })
     } catch {
       setState((s) => ({ ...s, error: 'Microphone access was denied. Allow the mic permission, or type your dream instead.' }))
     }
-  }, [])
+  }, [startTimer])
 
-  const stop = useCallback(async (): Promise<{ audio: Blob | null }> => {
+  const stopWeb = useCallback(async (): Promise<{ audio: Blob | null }> => {
     keepAliveRef.current = false
     recognitionRef.current?.stop()
     const recorder = recorderRef.current
@@ -155,12 +297,22 @@ export function useDictation(options: UseDictationOptions = {}) {
     // Give a trailing final-flush 'result' event (some browsers emit one on stop()) a beat to arrive
     // before we treat whatever interim text remains as the last word on this session.
     await new Promise((resolve) => setTimeout(resolve, 0))
-    const leftover = interimRef.current.trim()
-    interimRef.current = ''
-    if (leftover) onFinalSegmentRef.current?.(leftover)
+    commitInterim()
     setState((s) => ({ ...s, recording: false, interimText: '' }))
     return { audio }
-  }, [cleanup])
+  }, [cleanup, commitInterim])
+
+  // ----------------------------------------------------------------- shared --
+
+  const start = useCallback(async () => {
+    if (isNativeApp()) return startNative()
+    return startWeb()
+  }, [startNative, startWeb])
+
+  const stop = useCallback(async (): Promise<{ audio: Blob | null }> => {
+    if (isNativeApp()) return stopNative()
+    return stopWeb()
+  }, [stopNative, stopWeb])
 
   return { ...state, start, stop }
 }
