@@ -48,6 +48,14 @@ export interface UseDictationOptions {
   onFinalSegment?: (segment: string) => void
 }
 
+const RECOGNITION_RESTART_MS = 120
+
+function isIosSafari(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
 export function useDictation(options: UseDictationOptions = {}) {
   const [state, setState] = useState<DictationState>({
     recording: false,
@@ -61,19 +69,54 @@ export function useDictation(options: UseDictationOptions = {}) {
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const keepAliveRef = useRef(false)
+  const stoppingRef = useRef(false)
+  const startedAtRef = useRef(0)
   const interimRef = useRef('')
+  const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null)
   const onFinalSegmentRef = useRef(options.onFinalSegment)
   onFinalSegmentRef.current = options.onFinalSegment
 
-  const cleanup = useCallback(() => {
-    keepAliveRef.current = false
-    recognitionRef.current?.stop()
-    recognitionRef.current = null
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = null
-    streamRef.current?.getTracks().forEach((t) => t.stop())
+  const releaseWakeLock = useCallback(() => {
+    const lock = wakeLockRef.current
+    wakeLockRef.current = null
+    if (!lock) return
+    void lock.release().catch(() => { /* already released */ })
+  }, [])
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      const nav = navigator as Navigator & {
+        wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> }
+      }
+      if (!nav.wakeLock) return
+      wakeLockRef.current = await nav.wakeLock.request('screen')
+    } catch {
+      // Wake Lock is optional — denied or unsupported is fine.
+    }
+  }, [])
+
+  const releaseStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => {
+      try { t.stop() } catch { /* track may already be stopped */ }
+    })
     streamRef.current = null
   }, [])
+
+  const stopRecognition = useCallback(() => {
+    const rec = recognitionRef.current
+    recognitionRef.current = null
+    if (!rec) return
+    try { rec.stop() } catch { /* already stopped */ }
+  }, [])
+
+  const cleanup = useCallback(() => {
+    keepAliveRef.current = false
+    stopRecognition()
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+    releaseStream()
+    releaseWakeLock()
+  }, [releaseStream, releaseWakeLock, stopRecognition])
 
   useEffect(() => cleanup, [cleanup])
 
@@ -113,21 +156,35 @@ export function useDictation(options: UseDictationOptions = {}) {
         setState((s) => ({ ...s, interimText: interim }))
       }
       rec.onerror = (e) => {
-        if (e.error === 'no-speech') return // keep listening
+        // Expected while tearing down or when iOS ends a session abruptly
+        if (e.error === 'no-speech' || e.error === 'aborted') return
+        if (keepAliveRef.current && (e.error === 'network' || e.error === 'audio-capture')) {
+          setTimeout(() => {
+            if (!keepAliveRef.current || recognitionRef.current !== rec) return
+            try { rec.start() } catch { /* restart raced with stop */ }
+          }, RECOGNITION_RESTART_MS)
+          return
+        }
         setState((s) => ({ ...s, error: `Dictation error: ${e.error}` }))
       }
       rec.onend = () => {
-        // Chrome ends recognition after silence — restart while the session is live
-        if (keepAliveRef.current) {
-          try { rec.start() } catch { /* already restarted */ }
-        }
+        // Chrome and iOS Safari end recognition after silence — restart while the session is live
+        if (!keepAliveRef.current || stoppingRef.current) return
+        const delay = isIosSafari() ? RECOGNITION_RESTART_MS : 0
+        setTimeout(() => {
+          if (!keepAliveRef.current || stoppingRef.current || recognitionRef.current !== rec) return
+          try { rec.start() } catch { /* already restarted or stop in flight */ }
+        }, delay)
       }
+      stoppingRef.current = false
       keepAliveRef.current = true
       rec.start()
       recognitionRef.current = rec
       interimRef.current = ''
+      void requestWakeLock()
 
       const startedAt = Date.now()
+      startedAtRef.current = startedAt
       timerRef.current = setInterval(() => {
         setState((s) => ({ ...s, elapsed: Math.floor((Date.now() - startedAt) / 1000) }))
       }, 1000)
@@ -135,32 +192,62 @@ export function useDictation(options: UseDictationOptions = {}) {
     } catch {
       setState((s) => ({ ...s, error: 'Microphone access was denied. Allow the mic permission, or type your dream instead.' }))
     }
-  }, [])
+  }, [requestWakeLock])
 
-  const stop = useCallback(async (): Promise<{ audio: Blob | null }> => {
+  const stop = useCallback(async (): Promise<{ audio: Blob | null; durationSeconds: number }> => {
+    if (stoppingRef.current) {
+      return { audio: null, durationSeconds: Math.floor((Date.now() - startedAtRef.current) / 1000) }
+    }
+    stoppingRef.current = true
     keepAliveRef.current = false
-    recognitionRef.current?.stop()
+
+    const durationSeconds = startedAtRef.current
+      ? Math.floor((Date.now() - startedAtRef.current) / 1000)
+      : 0
+
+    let audio: Blob | null = null
     const recorder = recorderRef.current
-    const audio = await new Promise<Blob | null>((resolve) => {
-      if (!recorder || recorder.state === 'inactive') {
-        resolve(chunksRef.current.length ? new Blob(chunksRef.current, { type: 'audio/webm' }) : null)
-        return
+    recorderRef.current = null
+    const mimeType = recorder?.mimeType || 'audio/webm'
+
+    try {
+      stopRecognition()
+
+      if (recorder && recorder.state !== 'inactive') {
+        audio = await Promise.race([
+          new Promise<Blob | null>((resolve) => {
+            recorder.onstop = () => {
+              resolve(chunksRef.current.length ? new Blob(chunksRef.current, { type: mimeType }) : null)
+            }
+            try { recorder.stop() } catch {
+              resolve(chunksRef.current.length ? new Blob(chunksRef.current, { type: mimeType }) : null)
+            }
+          }),
+          new Promise<Blob | null>((resolve) => {
+            setTimeout(() => {
+              resolve(chunksRef.current.length ? new Blob(chunksRef.current, { type: mimeType }) : null)
+            }, 2500)
+          }),
+        ])
+      } else if (chunksRef.current.length) {
+        audio = new Blob(chunksRef.current, { type: mimeType })
       }
-      recorder.onstop = () => {
-        resolve(chunksRef.current.length ? new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' }) : null)
-      }
-      recorder.stop()
-    })
-    cleanup()
-    // Give a trailing final-flush 'result' event (some browsers emit one on stop()) a beat to arrive
-    // before we treat whatever interim text remains as the last word on this session.
-    await new Promise((resolve) => setTimeout(resolve, 0))
-    const leftover = interimRef.current.trim()
-    interimRef.current = ''
-    if (leftover) onFinalSegmentRef.current?.(leftover)
-    setState((s) => ({ ...s, recording: false, interimText: '' }))
-    return { audio }
-  }, [cleanup])
+    } finally {
+      if (timerRef.current) clearInterval(timerRef.current)
+      timerRef.current = null
+      releaseStream()
+      releaseWakeLock()
+      // iOS may emit a trailing result after stop(); give it a beat before flushing interim leftovers.
+      await new Promise((resolve) => setTimeout(resolve, isIosSafari() ? 80 : 0))
+      const leftover = interimRef.current.trim()
+      interimRef.current = ''
+      if (leftover) onFinalSegmentRef.current?.(leftover)
+      setState((s) => ({ ...s, recording: false, interimText: '' }))
+      stoppingRef.current = false
+    }
+
+    return { audio, durationSeconds }
+  }, [releaseStream, releaseWakeLock, stopRecognition])
 
   return { ...state, start, stop }
 }

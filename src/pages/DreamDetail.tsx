@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useDreams } from '../store/dreams'
 import { blobsDB } from '../db'
@@ -32,6 +32,33 @@ function useBlobUrl(id?: string): string | null {
   return url
 }
 
+function formatAudioDuration(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60)
+  const s = Math.floor(totalSeconds % 60)
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function AudioDurationLabel({ src }: { src: string }) {
+  const [label, setLabel] = useState<string | null>(null)
+  useEffect(() => {
+    const audio = new Audio()
+    audio.preload = 'metadata'
+    audio.src = src
+    const onMeta = () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        setLabel(formatAudioDuration(audio.duration))
+      }
+    }
+    audio.addEventListener('loadedmetadata', onMeta)
+    return () => {
+      audio.removeEventListener('loadedmetadata', onMeta)
+      audio.src = ''
+    }
+  }, [src])
+  if (!label) return null
+  return <span className="chip tabular-nums text-xs">{label}</span>
+}
+
 export default function DreamDetail() {
   const { id } = useParams<{ id: string }>()
   const [params] = useSearchParams()
@@ -49,6 +76,15 @@ export default function DreamDetail() {
   const videoBlobUrl = useBlobUrl(dream?.videoId)
   const ai = hasClaudeKey()
   const fresh = params.get('fresh') === '1'
+  const scrolledRecall = useRef(false)
+
+  useEffect(() => {
+    if (!fresh || !loaded || !dream || scrolledRecall.current) return
+    scrolledRecall.current = true
+    requestAnimationFrame(() => {
+      document.getElementById('recall')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [fresh, loaded, dream])
 
   if (!loaded) return <p className="py-10 text-center text-dusk-300">Loading…</p>
   if (!dream) {
@@ -126,14 +162,18 @@ export default function DreamDetail() {
             }
             title="Toggle: this dream recurs"
           >
-            🔁 recurring
+            recurring
           </button>
         </div>
       </header>
 
-      {fresh && !dream.rubric && (
+      {fresh && (
         <div className="reveal card border-dusk-400/40 p-4 text-sm text-dusk-200">
-          🌙 Dream caught. Now — while it's still warm — deepen the recall below{ai ? '' : ' with the interview'}, then interpret and visualize it.
+          <p className="font-display text-base text-dusk-100">Dream caught — it's still warm.</p>
+          <p className="mt-1.5 leading-relaxed">
+            Start with the recall interview below. Each question is meant to pull you back into the dream before it fades.
+            {ai ? ' Interpretation and Dream Studio can wait.' : ' Interpretation and visualization can wait.'}
+          </p>
         </div>
       )}
 
@@ -144,13 +184,16 @@ export default function DreamDetail() {
         ) : (
           <div className="flex aspect-video w-full items-center justify-center bg-gradient-to-br from-night-800 via-night-700 to-night-600">
             <p className="max-w-xs text-center text-sm text-dusk-300">
-              🎬 No dream reel yet — use the Dream Studio below to turn this dream into a short video.
+              No dream reel yet — use Dream Studio below to turn this into a short film.
             </p>
           </div>
         )}
         {audioUrl && (
-          <div className="border-t border-night-600/60 p-3">
-            <p className="label">Original recording</p>
+          <div className="border-t border-night-600/60 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="label mb-0">Original recording</p>
+              <AudioDurationLabel src={audioUrl} />
+            </div>
             <audio src={audioUrl} controls className="w-full accent-dusk-400" />
           </div>
         )}
@@ -166,7 +209,7 @@ export default function DreamDetail() {
               <button onClick={() => setEditingText(false)} className="btn-ghost text-xs">Cancel</button>
             </div>
           ) : (
-            <button onClick={() => { setDraft(dream.transcript); setEditingText(true) }} className="btn-ghost text-xs">✏️ Edit</button>
+            <button onClick={() => { setDraft(dream.transcript); setEditingText(true) }} className="btn-ghost text-xs">Edit</button>
           )}
         </div>
         {editingText ? (
@@ -192,12 +235,12 @@ export default function DreamDetail() {
       </section>
 
       {/* Recall */}
-      <section className="reveal card p-5">
+      <section id="recall" className="reveal card p-5 scroll-mt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-display text-xl text-dusk-100">Deepen the recall</h3>
           {ai && (
             <button onClick={() => void analyze()} disabled={analyzing} className="btn-ghost text-xs">
-              {analyzing ? 'Scoring…' : dream.rubric ? '↻ Re-score recall' : 'Score my recall ✨'}
+              {analyzing ? 'Scoring…' : dream.rubric ? 'Re-score recall' : 'Score my recall'}
             </button>
           )}
         </div>
@@ -212,7 +255,7 @@ export default function DreamDetail() {
           </div>
         )}
         <div className="mt-4">
-          <InterviewPanel dream={dream} />
+          <InterviewPanel dream={dream} autoStart={fresh} />
         </div>
       </section>
 
@@ -220,7 +263,7 @@ export default function DreamDetail() {
       <section className="reveal card p-5">
         <h3 className="font-display text-xl text-dusk-100">Interpretation</h3>
         <p className="mt-1 mb-4 text-xs text-dusk-400">
-          Four traditions, four readings — each explains where its ideas come from. Treat them as mirrors to try, not verdicts.
+          Jungian, Freudian, Cognitive, and Synthesis — four readings, each explaining where its ideas come from. Treat them as mirrors to try, not verdicts.
         </p>
         <InterpretationPanel dream={dream} />
       </section>

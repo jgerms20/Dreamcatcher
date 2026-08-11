@@ -38,25 +38,31 @@ export default function Journal() {
         </div>
         <div className="flex gap-2">
           {videoDreams.length > 0 && (
-            <button onClick={() => setReplay(true)} className="btn-secondary">▶ Replay ({videoDreams.length})</button>
+            <button onClick={() => setReplay(true)} className="btn-secondary">
+              Replay ({videoDreams.length})
+            </button>
           )}
-          <Link to="/capture" className="btn-primary">🌙 New dream</Link>
+          <Link to="/capture" className="btn-primary">
+            New dream
+          </Link>
         </div>
       </header>
 
       {dreams.length > 0 && (
-        <div className="reveal flex flex-wrap items-center gap-2">
+        <div className="reveal flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search dreams, symbols, feelings…"
-            className="input max-w-xs"
+            className="input w-full sm:max-w-xs"
           />
-          {(['all', 'recurring', 'video'] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={filter === f ? 'btn-primary' : 'btn-ghost'}>
-              {f === 'all' ? 'All' : f === 'recurring' ? '🔁 Recurring' : '🎬 With film'}
-            </button>
-          ))}
+          <div className="flex flex-wrap gap-2">
+            {(['all', 'recurring', 'video'] as const).map((f) => (
+              <button key={f} onClick={() => setFilter(f)} className={filter === f ? 'btn-primary' : 'btn-ghost'}>
+                {f === 'all' ? 'All' : f === 'recurring' ? 'Recurring' : 'With film'}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

@@ -232,8 +232,53 @@ h1.font-display em, .display-accent {
   animation: shimmer 2.4s linear infinite;
 }
 
+/* horizontal category strip — scroll without visible track clutter */
+.scroll-strip {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* symbol detail panel + list selection transitions */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.detail-fade {
+  animation: fade-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.symbol-list-item {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Sticky recording stop — sits above the mobile bottom nav + safe area */
+.recording-stop-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  z-index: 45;
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+.recording-stop-bar > * {
+  pointer-events: auto;
+}
+@media (min-width: 768px) {
+  .recording-stop-bar {
+    bottom: 1.5rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .recording-pulse, .shimmer-text {
+  .reveal, .recording-pulse, .shimmer-text, .detail-fade {
     animation: none;
+  }
+  .symbol-list-item {
+    transition: none;
   }
 }

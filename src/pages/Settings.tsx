@@ -145,9 +145,18 @@ export default function Settings() {
         </p>
       </header>
 
+      <section className="card space-y-2 p-5 reveal">
+        <h3 className="font-display text-lg text-dusk-100">Recording on iPhone</h3>
+        <p className="text-sm leading-relaxed text-dusk-300">
+          Live dictation works best in <strong className="text-dusk-100">Safari</strong>. The home-screen app shell is
+          quieter about speech recognition — if words aren&rsquo;t appearing, open this site in Safari, allow the
+          microphone, and try again. You can always type, or import a Voice Memo.
+        </p>
+      </section>
+
       <section className="card space-y-4 p-5 reveal">
         <div>
-          <h3 className="font-display text-lg text-dusk-100">🧠 Anthropic (Claude) — interpretation & interview</h3>
+          <h3 className="font-display text-lg text-dusk-100">Anthropic (Claude) — interpretation & interview</h3>
           <p className="mt-1 text-xs leading-relaxed text-dusk-400">
             Powers recall scoring, adaptive questions, interpretation, comparisons, and video prompts.
             Get a key at <a href="https://platform.claude.com/" target="_blank" rel="noreferrer" className="text-aurora-300 underline">platform.claude.com</a> → API keys.
@@ -177,7 +186,7 @@ export default function Settings() {
 
       <section className="card space-y-4 p-5 reveal">
         <div>
-          <h3 className="font-display text-lg text-dusk-100">🎬 fal.ai — video generation & transcription</h3>
+          <h3 className="font-display text-lg text-dusk-100">fal.ai — video generation & transcription</h3>
           <p className="mt-1 text-xs leading-relaxed text-dusk-400">
             One key unlocks many video models plus Whisper transcription for imported audio.
             Get a key at <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer" className="text-aurora-300 underline">fal.ai/dashboard/keys</a>.{' '}

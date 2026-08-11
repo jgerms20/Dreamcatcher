@@ -135,7 +135,7 @@ export default function InterpretationPanel({ dream }: { dream: Dream }) {
           <div className="flex flex-wrap gap-2">
             {matched.slice(0, 8).map((s) => (
               <Link key={s.id} to={`/symbols?q=${encodeURIComponent(s.name)}`} className="chip hover:border-dusk-400">
-                🔮 {s.name}
+                {s.name}
               </Link>
             ))}
           </div>
