@@ -62,12 +62,10 @@ function LockVeil() {
       className="fixed inset-0 z-[100] flex items-center justify-center p-6"
       style={{
         background:
-          'radial-gradient(1px 1px at 15% 25%, rgba(240,234,217,0.35) 50%, transparent 51%),' +
-          'radial-gradient(1.5px 1.5px at 82% 15%, rgba(212,162,78,0.35) 50%, transparent 51%),' +
-          'radial-gradient(1px 1px at 60% 70%, rgba(169,196,232,0.3) 50%, transparent 51%),' +
-          'radial-gradient(1px 1px at 30% 85%, rgba(240,234,217,0.2) 50%, transparent 51%),' +
-          'radial-gradient(ellipse 70% 45% at 50% -10%, rgba(43,52,86,0.6), transparent),' +
-          '#06070d',
+          'radial-gradient(ellipse 65% 50% at 82% -8%, rgba(143,180,234,0.18), transparent),' +
+          'radial-gradient(ellipse 60% 46% at -6% 10%, rgba(227,168,118,0.1), transparent),' +
+          'radial-gradient(ellipse 55% 42% at 40% 100%, rgba(217,146,174,0.1), transparent),' +
+          '#0b0f1e',
       }}
     >
       <style>{`
@@ -107,7 +105,7 @@ function LockVeil() {
             {Array.from({ length: MAX_DIGITS }).map((_, i) => (
               <div
                 key={i}
-                className={`flex h-14 w-9 items-center justify-center rounded-xl border text-2xl transition-colors ${
+                className={`flex h-14 w-9 items-center justify-center rounded-2xl border text-2xl transition-colors duration-300 ${
                   code[i]
                     ? 'border-dusk-400/60 bg-dusk-400/10 text-dusk-100'
                     : 'border-night-600/60 bg-night-800/60 text-dusk-400/30'

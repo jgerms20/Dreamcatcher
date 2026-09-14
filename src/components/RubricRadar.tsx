@@ -8,7 +8,7 @@ const CY = SIZE / 2
 const R = 84
 const LABEL_R = R + 30
 const GRID_HAIRLINE = 'rgba(207, 196, 174, 0.14)'
-const GOLD = '#d4a24e'
+const GOLD = '#e3a876'
 
 function point(i: number, value: number, radius = R): [number, number] {
   const angle = (Math.PI * 2 * i) / RUBRIC_DIMENSIONS.length - Math.PI / 2

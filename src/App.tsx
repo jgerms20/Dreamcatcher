@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect } from 'react'
-import type { ReactElement } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ReactElement, RefObject } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { useDreams } from './store/dreams'
 import { useSleep } from './store/sleep'
@@ -140,10 +140,43 @@ function RouteSkeleton() {
   )
 }
 
+type PillRect = { top: number; left: number; width: number; height: number }
+
+/**
+ * Tracks the active nav link's box (via NavLink's own aria-current) and
+ * returns coordinates for a pill that slides underneath it — a plain
+ * measure-and-translate approach, not an animation library, so the nav
+ * stays out of the critical-path bundle. Re-measures on route change and
+ * on resize, since the same nav reflows from a bottom bar to a sidebar.
+ */
+function useSlidingPill(containerRef: RefObject<HTMLElement | null>, watch: unknown) {
+  const [rect, setRect] = useState<PillRect | null>(null)
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const measure = () => {
+      const active = container.querySelector<HTMLElement>('a[aria-current="page"]')
+      if (!active) {
+        setRect(null)
+        return
+      }
+      setRect({ top: active.offsetTop, left: active.offsetLeft, width: active.offsetWidth, height: active.offsetHeight })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [containerRef, watch])
+
+  return rect
+}
+
 export default function App() {
   const loadDreams = useDreams((s) => s.load)
   const loadSleep = useSleep((s) => s.load)
   const location = useLocation()
+  const navRef = useRef<HTMLElement | null>(null)
+  const pill = useSlidingPill(navRef, location.pathname)
   // "Preview as a new visitor" opens the app with ?preview=1 so the dreamer can
   // see for themselves what a shared link looks like: nothing is read from disk.
   const preview = isPreviewMode()
@@ -162,33 +195,43 @@ export default function App() {
             Dream<em className="text-dusk-400">Catcher</em>
           </h1>
           <p className="mt-1.5 hidden text-[0.68rem] uppercase tracking-[0.22em] text-dusk-300/60 md:block">
-            a night atlas
+            a quiet place for dreams
           </p>
           <div className="rule mt-4 hidden md:block" />
         </NavLink>
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-night-600/60 bg-night-900/95 pt-1 backdrop-blur md:static md:flex md:flex-col md:justify-start md:gap-0.5 md:border-0 md:bg-transparent md:p-0 md:pt-6 md:backdrop-blur-none"
+          ref={navRef}
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-night-600/60 bg-night-900/95 pt-1 backdrop-blur md:relative md:flex md:flex-col md:justify-start md:gap-0.5 md:border-0 md:bg-transparent md:p-0 md:pt-6 md:backdrop-blur-none"
           style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom))' }}
         >
+          {pill && (
+            <span
+              aria-hidden="true"
+              className="nav-pill pointer-events-none absolute rounded-2xl bg-night-600/85 shadow-[inset_0_1px_0_rgba(244,242,255,0.06),0_0_0_1px_rgba(227,168,118,0.14),0_6px_18px_-8px_rgba(227,168,118,0.3)]"
+              style={{ width: pill.width, height: pill.height, transform: `translate(${pill.left}px, ${pill.top}px)` }}
+            />
+          )}
           {NAV.map(({ to, label, end, Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               className={({ isActive }) =>
-                `group flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-center text-[0.62rem] leading-tight transition-colors [-webkit-tap-highlight-color:transparent] md:min-h-0 md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2 md:text-sm ${
-                  isActive
-                    ? 'text-dusk-400 md:bg-night-800/80 md:text-dusk-100'
-                    : 'text-dusk-300/70 active:text-dusk-100 md:hover:text-dusk-100'
+                `group relative flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-2xl px-0.5 py-1.5 text-center text-[0.62rem] leading-tight transition-colors duration-300 [-webkit-tap-highlight-color:transparent] md:min-h-0 md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2 md:text-sm ${
+                  isActive ? 'text-dusk-400 md:text-dusk-100' : 'text-dusk-300/70 active:text-dusk-100 md:hover:text-dusk-100'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={isActive ? 'text-dusk-400' : 'text-dusk-300/50 md:group-hover:text-dusk-400/80'}>
+                  <span
+                    className={`relative z-10 transition-colors duration-300 ${
+                      isActive ? 'text-dusk-400' : 'text-dusk-300/50 md:group-hover:text-dusk-400/80'
+                    }`}
+                  >
                     <Icon active={isActive} />
                   </span>
-                  <span className="tracking-wide">{label}</span>
+                  <span className="relative z-10 tracking-wide">{label}</span>
                 </>
               )}
             </NavLink>
@@ -196,20 +239,22 @@ export default function App() {
         </nav>
       </aside>
 
-      <main key={location.pathname} className="min-w-0 flex-1 pt-2 md:pt-10">
-        <Suspense fallback={<RouteSkeleton />}>
-          <Routes>
-            <Route path="/" element={<Capture />} />
-            <Route path="/capture" element={<Capture />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/dream/:id" element={<DreamDetail />} />
-            <Route path="/insights" element={<Insights />} />
-            <Route path="/sleep" element={<Sleep />} />
-            <Route path="/symbols" element={<Symbols />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<Journal />} />
-          </Routes>
-        </Suspense>
+      <main className="min-w-0 flex-1 pt-2 md:pt-10">
+        <div key={location.pathname} className="page-flow">
+          <Suspense fallback={<RouteSkeleton />}>
+            <Routes location={location}>
+              <Route path="/" element={<Capture />} />
+              <Route path="/capture" element={<Capture />} />
+              <Route path="/journal" element={<Journal />} />
+              <Route path="/dream/:id" element={<DreamDetail />} />
+              <Route path="/insights" element={<Insights />} />
+              <Route path="/sleep" element={<Sleep />} />
+              <Route path="/symbols" element={<Symbols />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Journal />} />
+            </Routes>
+          </Suspense>
+        </div>
       </main>
 
       {preview && (

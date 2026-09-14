@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom'
 import type { Dream } from '../types'
 
 export const MOOD_META: Record<number, { label: string; emoji: string; color: string }> = {
-  [-2]: { label: 'Nightmare', emoji: '🌩️', color: '#8b7fd4' },
-  [-1]: { label: 'Unsettling', emoji: '🌫️', color: '#c5537b' },
-  [0]: { label: 'Neutral', emoji: '🌙', color: '#d4a24e' },
-  [1]: { label: 'Pleasant', emoji: '🌤️', color: '#1d968b' },
-  [2]: { label: 'Blissful', emoji: '🌈', color: '#7fa3d8' },
+  [-2]: { label: 'Nightmare', emoji: '🌩️', color: '#9f96e0' },
+  [-1]: { label: 'Unsettling', emoji: '🌫️', color: '#d6759b' },
+  [0]: { label: 'Neutral', emoji: '🌙', color: '#e3a876' },
+  [1]: { label: 'Pleasant', emoji: '🌤️', color: '#3aa99c' },
+  [2]: { label: 'Blissful', emoji: '🌈', color: '#8fb4ea' },
 }
 
 export function fmtDate(iso: string): string {
@@ -20,7 +20,7 @@ export default function DreamCard({ dream }: { dream: Dream }) {
   return (
     <Link
       to={`/dream/${dream.id}`}
-      className="card block overflow-hidden transition-colors hover:border-dusk-400/50"
+      className="card block overflow-hidden hover:-translate-y-1 hover:border-dusk-400/45 active:translate-y-0 active:scale-[0.99]"
       style={mood ? { borderLeft: `3px solid ${mood.color}` } : undefined}
     >
       {hasVideo ? (
