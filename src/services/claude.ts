@@ -190,8 +190,15 @@ const LENS_PROMPTS: Record<LensId, string> = {
     'Interpret through a Freudian/psychoanalytic lens: manifest vs latent content, wish fulfillment, displacement, condensation, day residue. Be intellectually honest about the speculative nature of the method.',
   cognitive:
     'Interpret through a cognitive-neuroscience lens: memory consolidation, emotion regulation, threat simulation theory, continuity hypothesis, day residue from recent experience. Ground claims in what dream science actually supports, and be honest about the limits.',
-  spiritual:
-    'Interpret through cultural and spiritual traditions: cross-cultural folk symbolism, mythological parallels, and intuitive/spiritual readings. Present these respectfully as traditions of meaning rather than facts.',
+  spiritual: `Interpret through a Synthesis lens — weave meaning across astrology, numerology, sacred stories, and myth/literature.
+
+Synthesis method:
+- Pull 2–4 threads from DIFFERENT sources that genuinely fit THIS dream. Skip astrology or numerology if the dream offers nothing to work with (no planetary/sign imagery; no notable numbers, ages, dates, or counts).
+- Do NOT invent a natal chart. Without birth data, speak archetypally about dream images only (e.g. "moonlit water" as a lunar motif, not "your Moon in Pisces").
+- Draw from religious texts, parables, and sacred stories (Christian, Jewish, Islamic, Buddhist, Hindu, etc.) — respectful, comparative, never preachy, never claiming prophecy.
+- Include myth, folklore, and literature when images echo classic stories.
+- Quote the dreamer's own words and images in each thread. For every thread, name its source tradition or text and why it maps to this dream.
+- Synthesize across threads: what may the dream be asking or revealing? Offer hypotheses to try on, not verdicts.`,
 }
 
 export async function interpretLens(
@@ -201,6 +208,11 @@ export async function interpretLens(
 ): Promise<string> {
   const client = getClient()
   const lensName = LENSES.find((l) => l.id === lens)?.name ?? lens
+  const wordCap = lens === 'spiritual' ? 500 : 450
+  const structureHint =
+    lens === 'spiritual'
+      ? 'After the opening header, use short ### subheaders for each tradition-thread (e.g. ### A lunar motif, ### A parable echo), then a brief ### What it may be asking that synthesizes them.'
+      : 'After the opening header, structure the body with a few short markdown ### subheaders.'
   const stream = client.messages.stream({
     model: model(),
     max_tokens: 3000,
@@ -212,7 +224,7 @@ Rules:
 - Quote the dreamer's own words and images throughout, rather than paraphrasing them away — e.g. "the water that kept rising," not "an aquatic symbol."
 - ALWAYS explain where each interpretation comes from — the symbol, tradition, or mechanism behind it ("In ${lensName} thought, water often stands for X, which is why...").
 - Interpretations are hypotheses to try on, not verdicts. Offer the dreamer questions to test them against their life.
-- After the opening header, structure the body with a few short markdown ### subheaders. Keep the whole thing under 450 words.
+- ${structureHint} Keep the whole thing under ${wordCap} words.
 - End with one reflective question.`,
     messages: [{ role: 'user', content: dreamContext(dream) }],
   })
@@ -244,7 +256,13 @@ export async function interpretAuto(
       model: model(),
       max_tokens: 300,
       system:
-        "You are DreamCatcher's interpretation triage assistant. Given a dream, decide which single interpretive lens — jungian, freudian, cognitive, or spiritual — best fits THIS dream's content, symbols, and the dreamer's apparent needs. Pick exactly one lens; don't hedge between two.",
+        `You are DreamCatcher's interpretation triage assistant. Given a dream, decide which single interpretive lens best fits THIS dream's content, symbols, and the dreamer's apparent needs. Pick exactly one lens; don't hedge between two.
+
+Lenses:
+- jungian: archetypes, shadow, individuation — best for mythic figures, recurring personas, inner conflict
+- freudian: latent content, wish fulfillment — best for charged relationships, desire, disguise
+- cognitive: memory consolidation, threat simulation, emotion processing — best for recent events, stress, realistic scenarios
+- spiritual (Synthesis): weaves astrology, numerology, scripture/parable, myth & literature — best for symbol-heavy, mythic, number-laden, or sacred-feeling dreams with rich cross-traditional imagery`,
       messages: [{ role: 'user', content: dreamContext(dream) }],
       output_config: { format: { type: 'json_schema', schema: lensPickerSchema } },
     })

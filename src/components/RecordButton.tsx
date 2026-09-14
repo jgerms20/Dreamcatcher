@@ -199,7 +199,7 @@ export default function RecordButton({
         {recording ? (
           <>
             <span className="rb-dot" aria-hidden="true" />
-            <span>{timeLabel}</span>
+            <span>Tap to stop · {timeLabel}</span>
           </>
         ) : !supported ? (
           <span className="text-ember-300">Not supported here — try Chrome or Edge</span>

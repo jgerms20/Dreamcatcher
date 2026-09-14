@@ -4,7 +4,7 @@ export const LENSES: { id: LensId; name: string; blurb: string }[] = [
   { id: 'jungian', name: 'Jungian', blurb: 'Archetypes, the shadow, and the collective unconscious' },
   { id: 'freudian', name: 'Freudian', blurb: 'Wish fulfillment, latent content, and the personal unconscious' },
   { id: 'cognitive', name: 'Cognitive / Neuroscience', blurb: 'Memory consolidation, threat simulation, and emotion processing' },
-  { id: 'spiritual', name: 'Cultural / Spiritual', blurb: 'Folk traditions, symbolism across cultures, and intuitive readings' },
+  { id: 'spiritual', name: 'Synthesis', blurb: 'Astrology, numerology, scripture & parable, myth & literature — woven together' },
 ]
 
 export interface RubricDimensionScore {
