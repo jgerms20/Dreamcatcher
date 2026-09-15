@@ -56,15 +56,15 @@ export default function RecordButton({
           position: absolute;
           inset: 0;
           border-radius: 9999px;
-          border: 1px solid rgba(194, 103, 135, 0.5);
+          border: 1px solid rgba(217, 146, 174, 0.45);
           opacity: 0;
           pointer-events: none;
         }
-        .rb-ring-1 { animation: rb-sonar 2.6s cubic-bezier(0.2, 0.65, 0.3, 1) infinite; }
-        .rb-ring-2 { animation: rb-sonar 2.6s cubic-bezier(0.2, 0.65, 0.3, 1) infinite; animation-delay: 0.85s; }
-        .rb-ring-3 { animation: rb-sonar 2.6s cubic-bezier(0.2, 0.65, 0.3, 1) infinite; animation-delay: 1.7s; }
+        .rb-ring-1 { animation: rb-sonar 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+        .rb-ring-2 { animation: rb-sonar 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; animation-delay: 1.05s; }
+        .rb-ring-3 { animation: rb-sonar 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; animation-delay: 2.1s; }
         @keyframes rb-sonar {
-          0% { opacity: 0.5; transform: scale(0.94); }
+          0% { opacity: 0.45; transform: scale(0.94); }
           70% { opacity: 0; transform: scale(1.5); }
           100% { opacity: 0; transform: scale(1.5); }
         }
@@ -78,43 +78,43 @@ export default function RecordButton({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: radial-gradient(60% 60% at 50% 38%, rgba(212, 162, 78, 0.14), transparent 70%),
-            linear-gradient(160deg, #161a2a 0%, #10131f 65%);
-          border: 1.5px solid rgba(212, 162, 78, 0.55);
+          background: radial-gradient(60% 60% at 50% 38%, rgba(227, 168, 118, 0.13), transparent 70%),
+            linear-gradient(160deg, #232c4f 0%, #1a2140 65%);
+          border: 1.5px solid rgba(227, 168, 118, 0.5);
           box-shadow:
-            0 0 0 1px rgba(6, 7, 13, 0.4),
-            0 1px 0 rgba(240, 234, 217, 0.06) inset,
-            0 0 26px -8px rgba(212, 162, 78, 0.45);
-          transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.35s ease, box-shadow 0.35s ease, background 0.35s ease;
+            0 0 0 1px rgba(11, 15, 30, 0.4),
+            0 1px 0 rgba(244, 242, 255, 0.06) inset,
+            0 0 30px -10px rgba(227, 168, 118, 0.4);
+          transition: transform 0.3s var(--ease-flow, cubic-bezier(0.22, 1, 0.36, 1)), border-color 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
         }
         .rb-button:hover:not(:disabled) { transform: scale(1.035); }
         .rb-button:active:not(:disabled) { transform: scale(0.97); }
         .rb-button:focus-visible {
           outline: none;
           box-shadow:
-            0 0 0 3px rgba(212, 162, 78, 0.35),
-            0 0 26px -8px rgba(212, 162, 78, 0.55);
+            0 0 0 3px rgba(227, 168, 118, 0.32),
+            0 0 26px -8px rgba(227, 168, 118, 0.5);
         }
         .rb-button:disabled { cursor: not-allowed; filter: grayscale(0.6); opacity: 0.45; }
 
         .rb-button-active {
-          border-color: rgba(194, 103, 135, 0.75);
-          background: radial-gradient(60% 60% at 50% 40%, rgba(194, 103, 135, 0.22), transparent 70%),
-            linear-gradient(160deg, #1c1626 0%, #12101c 65%);
-          animation: rb-breathe 2s ease-in-out infinite;
+          border-color: rgba(217, 146, 174, 0.7);
+          background: radial-gradient(60% 60% at 50% 40%, rgba(217, 146, 174, 0.2), transparent 70%),
+            linear-gradient(160deg, #241d3c 0%, #171331 65%);
+          animation: rb-breathe 2.6s ease-in-out infinite;
         }
         @keyframes rb-breathe {
           0%, 100% {
             box-shadow:
-              0 0 0 0 rgba(194, 103, 135, 0.4),
-              0 1px 0 rgba(240, 234, 217, 0.06) inset,
-              0 0 30px -6px rgba(194, 103, 135, 0.55);
+              0 0 0 0 rgba(217, 146, 174, 0.38),
+              0 1px 0 rgba(244, 242, 255, 0.06) inset,
+              0 0 30px -6px rgba(217, 146, 174, 0.5);
           }
           50% {
             box-shadow:
-              0 0 0 10px rgba(194, 103, 135, 0),
-              0 1px 0 rgba(240, 234, 217, 0.06) inset,
-              0 0 42px -4px rgba(194, 103, 135, 0.75);
+              0 0 0 12px rgba(217, 146, 174, 0),
+              0 1px 0 rgba(244, 242, 255, 0.06) inset,
+              0 0 42px -4px rgba(217, 146, 174, 0.7);
           }
         }
 
@@ -124,10 +124,10 @@ export default function RecordButton({
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: opacity 0.32s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+          transition: opacity 0.36s cubic-bezier(0.22, 1, 0.36, 1), transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .rb-icon-mic { color: var(--color-dusk-200, #e0d8c6); }
-        .rb-icon-stop { color: var(--color-rose-dream, #c26787); }
+        .rb-icon-mic { color: var(--color-dusk-200, #dde2f2); }
+        .rb-icon-stop { color: var(--color-rose-dream, #d992ae); }
         .rb-icon-hidden-out { opacity: 0; transform: scale(0.5) rotate(-14deg); }
         .rb-icon-hidden-in { opacity: 0; transform: scale(0.5) rotate(14deg); }
 
@@ -138,14 +138,14 @@ export default function RecordButton({
           gap: 0.4rem;
           font-variant-numeric: tabular-nums;
           font-size: 0.85rem;
-          color: var(--color-dusk-300, #cfc4ae);
+          color: var(--color-dusk-300, #c7cde6);
         }
         .rb-dot {
           width: 6px;
           height: 6px;
           border-radius: 9999px;
-          background: var(--color-rose-dream, #c26787);
-          animation: rb-dot-pulse 1.4s ease-in-out infinite;
+          background: var(--color-rose-dream, #d992ae);
+          animation: rb-dot-pulse 1.6s ease-in-out infinite;
         }
         @keyframes rb-dot-pulse {
           0%, 100% { opacity: 0.4; }

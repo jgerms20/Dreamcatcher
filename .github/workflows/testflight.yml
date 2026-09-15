@@ -1,0 +1,180 @@
+name: iOS TestFlight
+
+# Builds the Capacitor iOS app on a hosted macOS runner and uploads it to
+# TestFlight. Deliberately manual (plus a tag trigger) rather than on every
+# push: each run burns a TestFlight build number and macOS runner minutes bill
+# at 10x the Linux rate, so pushing to main should not silently ship a build.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'ios-v*'
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    env:
+      ARCHIVE_PATH: ${{ github.workspace }}/build/DreamCatcher.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/build/export
+      KEY_DIR: ${{ github.workspace }}/private_keys
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail with a readable message instead of a cryptic xcodebuild signing
+      # error 20 minutes into the run. See docs/TESTFLIGHT.md for how to mint
+      # each of these.
+      - name: Check required secrets are set
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          missing=""
+          for name in APPLE_TEAM_ID APPSTORE_ISSUER_ID APPSTORE_KEY_ID APPSTORE_PRIVATE_KEY; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo "Add them under Settings → Secrets and variables → Actions."
+            echo "Setup instructions: docs/TESTFLIGHT.md"
+            exit 1
+          fi
+          echo "All four signing secrets are present."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Builds the web bundle with base '/' and runs `cap sync ios`, which
+      # copies dist/ into the Xcode project and runs `pod install`.
+      - name: Build web bundle and sync native project
+        run: npm run build:ios
+
+      - name: Show toolchain versions
+        run: |
+          xcodebuild -version
+          pod --version
+
+      # xcodebuild and altool both read the App Store Connect key from disk.
+      # It lands in the workspace (wiped with the runner) rather than $HOME so
+      # the path is predictable for -authenticationKeyPath.
+      - name: Write App Store Connect API key
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          mkdir -p "$KEY_DIR"
+          printf '%s\n' "$APPSTORE_PRIVATE_KEY" > "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8"
+          chmod 600 "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8"
+          # altool does not take a key path; it searches known directories.
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          cp "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" "$HOME/.appstoreconnect/private_keys/"
+
+      # -allowProvisioningUpdates lets Xcode create and download the signing
+      # certificate and provisioning profile using the API key, so there are no
+      # .p12 or .mobileprovision secrets to export and rotate by hand.
+      - name: Archive
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          xcodebuild archive \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }}
+
+      # App Store Connect rejects a duplicate build number, so the run number
+      # becomes the build number and only ever moves forward.
+      - name: Export signed IPA
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>destination</key><string>export</string>
+          </dict>
+          </plist>
+          PLIST
+
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_DIR/AuthKey_${APPSTORE_KEY_ID}.p8" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID"
+
+      # Validate first: a rejected upload still consumes the build number, and
+      # validation catches missing icons or bad entitlements in seconds.
+      - name: Validate build
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          IPA=$(find "$EXPORT_PATH" -name '*.ipa' | head -n 1)
+          echo "IPA: $IPA"
+          xcrun altool --validate-app \
+            --type ios \
+            --file "$IPA" \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID"
+
+      - name: Upload to TestFlight
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+        run: |
+          IPA=$(find "$EXPORT_PATH" -name '*.ipa' | head -n 1)
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA" \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID"
+          echo "### Uploaded build ${{ github.run_number }} to TestFlight" >> "$GITHUB_STEP_SUMMARY"
+          echo "Apple takes a few minutes to finish processing before it appears in the app." >> "$GITHUB_STEP_SUMMARY"
+
+      # Useful when a build installs but misbehaves, and for symbolicating crashes.
+      - name: Upload IPA as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dreamcatcher-ios-${{ github.run_number }}
+          path: ${{ env.EXPORT_PATH }}
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Remove signing key
+        if: always()
+        run: rm -rf "$KEY_DIR" "$HOME/.appstoreconnect/private_keys"

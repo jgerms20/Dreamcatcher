@@ -2,9 +2,13 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// Deployed to GitHub Pages at https://jgerms20.github.io/Dreamcatcher/
-export default defineConfig({
-  base: '/Dreamcatcher/',
+// Two deploy targets, one codebase:
+//   `vite build`            → GitHub Pages, served from /Dreamcatcher/
+//   `vite build --mode ios` → Capacitor, served from capacitor://localhost/
+// The iOS bundle is loaded off the device's own filesystem, so a repo-name
+// base path would break every asset URL inside the app.
+export default defineConfig(({ mode }) => ({
+  base: mode === 'ios' ? '/' : '/Dreamcatcher/',
   plugins: [react(), tailwindcss()],
   build: {
     rolldownOptions: {
@@ -35,4 +39,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

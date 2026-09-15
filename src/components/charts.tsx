@@ -54,9 +54,9 @@ function hexToRgb(hex: string): [number, number, number] {
 // Two validated poles (warm ember = low, cool viz-violet = high) meeting at a
 // neutral midpoint — the standard diverging construction, interpolated so any
 // value in [-domain, domain] gets a consistent step, not just the five whole numbers.
-const MOOD_NEG = '#c96342'
-const MOOD_NEUTRAL = '#4a4f74'
-const MOOD_POS = '#8b7fd4'
+const MOOD_NEG = '#d98a66'
+const MOOD_NEUTRAL = '#414c72'
+const MOOD_POS = '#9f96e0'
 
 export function moodColor(value: number, domain = 2): string {
   const t = Math.max(-1, Math.min(1, value / domain))
@@ -70,7 +70,7 @@ interface ScatterProps {
   color?: string
 }
 
-export function ScatterChart({ points, xLabel, yLabel, color = '#1d968b' }: ScatterProps) {
+export function ScatterChart({ points, xLabel, yLabel, color = '#3aa99c' }: ScatterProps) {
   const W = 340
   const H = 220
   const PAD = { l: 40, r: 12, t: 12, b: 34 }
@@ -90,14 +90,14 @@ export function ScatterChart({ points, xLabel, yLabel, color = '#1d968b' }: Scat
       <line x1={PAD.l} y1={H - PAD.b} x2={W - PAD.r} y2={H - PAD.b} stroke="rgba(207,196,174,0.12)" strokeWidth={1} />
       <line x1={PAD.l} y1={PAD.t} x2={PAD.l} y2={H - PAD.b} stroke="rgba(207,196,174,0.12)" strokeWidth={1} />
       {points.map((p, i) => (
-        <circle key={i} cx={px(p.x)} cy={py(p.y)} r={5} fill={color} fillOpacity={0.85} stroke="#10131f" strokeWidth={1.5}>
+        <circle key={i} cx={px(p.x)} cy={py(p.y)} r={5} fill={color} fillOpacity={0.85} stroke="#1a2140" strokeWidth={1.5}>
           <title>{p.label}</title>
         </circle>
       ))}
-      <text x={(PAD.l + W - PAD.r) / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="#f0ead9">
+      <text x={(PAD.l + W - PAD.r) / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="#f4f2ff">
         {xLabel}
       </text>
-      <text x={12} y={(PAD.t + H - PAD.b) / 2} textAnchor="middle" fontSize={11} fill="#f0ead9" transform={`rotate(-90 12 ${(PAD.t + H - PAD.b) / 2})`}>
+      <text x={12} y={(PAD.t + H - PAD.b) / 2} textAnchor="middle" fontSize={11} fill="#f4f2ff" transform={`rotate(-90 12 ${(PAD.t + H - PAD.b) / 2})`}>
         {yLabel}
       </text>
       <text x={PAD.l - 6} y={py(yMax) + 4} textAnchor="end" fontSize={10} fill="rgba(207,196,174,0.5)">{fmt(yMax)}</text>
@@ -119,7 +119,7 @@ interface BarListProps {
 }
 
 // Horizontal bar list with baseline-anchored bars and direct labels.
-export function BarList({ items, color = '#c0702a', max }: BarListProps) {
+export function BarList({ items, color = '#d68a4a', max }: BarListProps) {
   const top = max ?? Math.max(...items.map((i) => i.value), 1)
   return (
     <div className="space-y-2">
@@ -146,7 +146,7 @@ interface TrendPoint {
 }
 
 // Time trend as dots on a 2px line; y domain fixed by caller.
-export function TrendChart({ points, yMin, yMax, yTicks, color = '#8b7fd4', ariaLabel, trendLine = false }: {
+export function TrendChart({ points, yMin, yMax, yTicks, color = '#9f96e0', ariaLabel, trendLine = false }: {
   points: TrendPoint[]
   yMin: number
   yMax: number
@@ -182,7 +182,7 @@ export function TrendChart({ points, yMin, yMax, yTicks, color = '#8b7fd4', aria
       )}
       {n > 1 && <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />}
       {points.map((p, i) => (
-        <circle key={i} cx={px(i)} cy={py(p.value)} r={4.5} fill={color} stroke="#10131f" strokeWidth={2}>
+        <circle key={i} cx={px(i)} cy={py(p.value)} r={4.5} fill={color} stroke="#1a2140" strokeWidth={2}>
           <title>{p.label}</title>
         </circle>
       ))}
@@ -315,7 +315,7 @@ export interface PairItem {
 // Category-colored identity dots (paired with text, never color-alone) beside
 // a single sequential (candle-gold) magnitude bar — identity and magnitude
 // stay on separate channels.
-export function PairBarList({ items, color = '#d4a24e', max }: { items: PairItem[]; color?: string; max?: number }) {
+export function PairBarList({ items, color = '#e3a876', max }: { items: PairItem[]; color?: string; max?: number }) {
   const top = max ?? Math.max(...items.map((i) => i.value), 1)
   return (
     <div className="space-y-3">

@@ -384,7 +384,7 @@ export default function Insights() {
         <p className="mt-1 text-xs text-dusk-400">Symbols that recur <em className="not-italic text-dusk-300">together</em>, not just often.</p>
         {pairItems.length ? (
           <div className="mt-4 max-w-lg">
-            <PairBarList items={pairItems} color="#d4a24e" />
+            <PairBarList items={pairItems} color="#e3a876" />
           </div>
         ) : (
           <p className="mt-3 text-sm text-dusk-400">Pairs appear once a couple of your analyzed dreams share two or more symbols.</p>
@@ -394,7 +394,7 @@ export default function Insights() {
           <div>
             <h4 className="text-xs tracking-wider text-dusk-400 uppercase">Recurring symbols</h4>
             {symbolCounts.length ? (
-              <div className="mt-3"><BarList items={symbolCounts} color="#1d968b" /></div>
+              <div className="mt-3"><BarList items={symbolCounts} color="#3aa99c" /></div>
             ) : (
               <p className="mt-3 text-sm text-dusk-400">Symbols appear here after dreams are analyzed (✨ on a dream page).</p>
             )}
@@ -402,7 +402,7 @@ export default function Insights() {
           <div>
             <h4 className="text-xs tracking-wider text-dusk-400 uppercase">Recurring emotions</h4>
             {emotionCounts.length ? (
-              <div className="mt-3"><BarList items={emotionCounts} color="#c0702a" /></div>
+              <div className="mt-3"><BarList items={emotionCounts} color="#d68a4a" /></div>
             ) : (
               <p className="mt-3 text-sm text-dusk-400">Emotions appear here after dreams are analyzed.</p>
             )}
@@ -422,7 +422,7 @@ export default function Insights() {
                   yMin={0}
                   yMax={100}
                   yTicks={[{ value: 100, label: 'thorough' }, { value: 50, label: 'partial' }, { value: 0, label: 'sparse' }]}
-                  color="#1d968b"
+                  color="#3aa99c"
                   trendLine
                   ariaLabel={`Recall score over time. ${recallTrendText ?? ''}`}
                 />
@@ -441,7 +441,7 @@ export default function Insights() {
                 yMin={-2}
                 yMax={2}
                 yTicks={[{ value: 2, label: 'blissful' }, { value: 0, label: 'neutral' }, { value: -2, label: 'nightmare' }]}
-                color="#8b7fd4"
+                color="#9f96e0"
                 ariaLabel="Dream mood over time, from nightmare to blissful"
               />
             </div>
@@ -485,7 +485,7 @@ export default function Insights() {
                 points={topCorrelation.xs.map((x, i) => ({ x, y: topCorrelation.ys[i], label: topCorrelation.labels[i] }))}
                 xLabel={topCorrelation.factor}
                 yLabel={topCorrelation.metric}
-                color="#c0702a"
+                color="#d68a4a"
               />
             </div>
             {correlations.length > 1 && (
